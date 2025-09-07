@@ -1,0 +1,16 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: integrador
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/FacundoOtero92/SDYPP-FINAL.git
+    targetRevision: main
+    path: k8s/manifests
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: integrador
+  syncPolicy:
+    automated: { prune: true, selfHeal: true }
