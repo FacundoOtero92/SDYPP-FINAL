@@ -4,7 +4,7 @@ import pika, requests
 
 app = Flask(__name__)
 
-# --- Config ---
+ # --- Config ---
 RABBITMQ_HOST  = os.getenv("RABBITMQ_HOST", "rabbitmq")
 RABBITMQ_USER  = os.getenv("RABBITMQ_USER", "guest")
 RABBITMQ_PASS  = os.getenv("RABBITMQ_PASS", "guest")
