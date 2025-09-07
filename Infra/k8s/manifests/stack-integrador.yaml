@@ -1,0 +1,310 @@
+# =========================================
+# Namespace
+# =========================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: integrador
+---
+# =========================================
+# RABBITMQ (AMQP) + UI
+# - Usa credenciales desde Secret: rabbitmq-auth (user/pass)
+# - Service tipo LoadBalancer interno para VMs GPU
+# =========================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+  namespace: integrador
+  annotations:
+    cloud.google.com/load-balancer-type: "Internal"
+spec:
+  type: LoadBalancer
+  selector: { app: rabbitmq }
+  ports:
+    - name: amqp
+      port: 5672
+      targetPort: 5672
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq-ui
+  namespace: integrador
+spec:
+  type: ClusterIP
+  selector: { app: rabbitmq }
+  ports:
+    - name: http
+      port: 15672
+      targetPort: 15672
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq
+  namespace: integrador
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: rabbitmq } }
+  template:
+    metadata: { labels: { app: rabbitmq } }
+    spec:
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:3-management
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom: { secretKeyRef: { name: rabbitmq-auth, key: user } }
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom: { secretKeyRef: { name: rabbitmq-auth, key: pass } }
+          ports:
+            - containerPort: 5672
+            - containerPort: 15672
+
+# =========================================
+# REDIS
+# =========================================
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-integrador
+  namespace: integrador
+spec:
+  type: ClusterIP
+  selector: { app: redis-integrador }
+  ports:
+    - port: 6379
+      targetPort: 6379
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-integrador
+  namespace: integrador
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: redis-integrador } }
+  template:
+    metadata: { labels: { app: redis-integrador } }
+    spec:
+      containers:
+        - name: redis
+          image: redis:7
+          ports: [{ containerPort: 6379 }]
+
+# =========================================
+# COORDINATOR (publica a inbox del pool)
+# =========================================
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: coordinador-integrador
+  namespace: integrador
+spec:
+  type: ClusterIP
+  selector: { app: coordinator }
+  ports:
+    - name: http
+      port: 5000
+      targetPort: 5000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coordinator
+  namespace: integrador
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: coordinator } }
+  template:
+    metadata: { labels: { app: coordinator } }
+    spec:
+      # imagePullSecrets:
+      #   - name: dockerhub-cred
+      containers:
+        - name: coordinador
+          image: docker.io/facundootero/coordinador:latest
+          imagePullPolicy: Always
+          ports: [{ containerPort: 5000 }]
+          env:
+            - { name: RABBITMQ_HOST, value: "rabbitmq" }
+            - { name: POOL_EXCHANGE, value: "coordinator.inbox" }
+            - { name: POOL_QUEUE,    value: "pool.tasks" }
+            - { name: POOL_RK,       value: "tasks" }
+            - { name: REDIS_HOST,    value: "redis-integrador" }
+          readinessProbe:
+            httpGet: { path: /alive, port: 5000 }
+            initialDelaySeconds: 5
+          livenessProbe:
+            httpGet: { path: /alive, port: 5000 }
+            initialDelaySeconds: 10
+
+# =========================================
+# WORKER-POOL
+# - Declara inbox y colas de trabajo (pow.gpu TTL→DLX→pow.cpu)
+# - Expone HTTP interno para /alive y /solved_task
+# =========================================
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker-pool
+  namespace: integrador
+  annotations:
+    cloud.google.com/load-balancer-type: "Internal"
+spec:
+  type: LoadBalancer
+  selector: { app: worker-pool }
+  ports:
+    - name: http
+      port: 5001
+      targetPort: 5001
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker-pool
+  namespace: integrador
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: worker-pool } }
+  template:
+    metadata: { labels: { app: worker-pool } }
+    spec:
+      # imagePullSecrets:
+      #   - name: dockerhub-cred
+      initContainers:
+        - name: declare-queues
+          image: python:3.11-slim
+          env:
+            - { name: RABBIT_HOST, value: "rabbitmq" }
+            - { name: RABBIT_USER, valueFrom: { secretKeyRef: { name: rabbitmq-auth, key: user } } }
+            - { name: RABBIT_PASS, valueFrom: { secretKeyRef: { name: rabbitmq-auth, key: pass } } }
+          command: ["/bin/sh","-c"]
+          args:
+            - |
+              pip install --no-cache-dir pika >/dev/null 2>&1
+              python - <<'PY'
+              import os, pika
+              host=os.getenv("RABBIT_HOST")
+              user=os.getenv("RABBIT_USER"); pwd=os.getenv("RABBIT_PASS")
+              con=pika.BlockingConnection(pika.ConnectionParameters(
+                host=host, credentials=pika.PlainCredentials(user,pwd)))
+              ch=con.channel()
+              # Inbox del pool
+              ch.exchange_declare(exchange="coordinator.inbox", exchange_type="direct", durable=True)
+              ch.queue_declare(queue="pool.tasks", durable=True, arguments={"x-queue-type":"quorum"})
+              ch.queue_bind(exchange="coordinator.inbox", queue="pool.tasks", routing_key="tasks")
+              # Trabajo a workers
+              ch.exchange_declare(exchange="ExchangeBlock", exchange_type="direct", durable=True)
+              ch.queue_declare(queue="pow.gpu", durable=True, arguments={
+                "x-queue-type":"quorum",
+                "x-message-ttl": 30000,  # 30s → ajustá según p95 GPU
+                "x-dead-letter-exchange":"ExchangeBlock",
+                "x-dead-letter-routing-key":"pow.cpu"
+              })
+              ch.queue_bind(exchange="ExchangeBlock", queue="pow.gpu", routing_key="pow.gpu")
+              ch.queue_declare(queue="pow.cpu", durable=True, arguments={"x-queue-type":"quorum"})
+              ch.queue_bind(exchange="ExchangeBlock", queue="pow.cpu", routing_key="pow.cpu")
+              con.close(); print("Queues ready")
+              PY
+      containers:
+        - name: pool
+          image: docker.io/facundootero/worker-pool:latest
+          imagePullPolicy: Always
+          ports: [{ containerPort: 5001 }]
+          env:
+            # RabbitMQ
+            - { name: RABBITMQ_HOST, value: "rabbitmq" }
+            - { name: RABBITMQ_USER, valueFrom: { secretKeyRef: { name: rabbitmq-auth, key: user } } }
+            - { name: RABBITMQ_PASS, valueFrom: { secretKeyRef: { name: rabbitmq-auth, key: pass } } }
+            # Inbox del pool
+            - { name: POOL_EXCHANGE, value: "coordinator.inbox" }
+            - { name: POOL_QUEUE,    value: "pool.tasks" }
+            - { name: POOL_RK,       value: "tasks" }
+            # Trabajo a workers
+            - { name: EXCHANGE_BLOCK, value: "ExchangeBlock" }
+            - { name: RK_GPU, value: "pow.gpu" }
+            - { name: RK_CPU, value: "pow.cpu" }
+            # TTL GPU→CPU y particionado
+            - { name: GPU_TTL_MS,  value: "30000" }
+            - { name: POOL_CHUNKS, value: "8" }
+            # Reenvío de resultados
+            - { name: COORDINATOR_URL, value: "http://coordinador-integrador:5000" }
+          readinessProbe:
+            httpGet: { path: /alive, port: 5001 }
+            initialDelaySeconds: 5
+          livenessProbe:
+            httpGet: { path: /alive, port: 5001 }
+            initialDelaySeconds: 10
+
+# =========================================
+# WORKERS CPU (escala con KEDA por backlog en pow.cpu)
+# =========================================
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker-cpu
+  namespace: integrador
+spec:
+  replicas: 0  # KEDA escala desde 0
+  selector: { matchLabels: { app: worker-cpu } }
+  template:
+    metadata: { labels: { app: worker-cpu } }
+    spec:
+      # Programar en node pool con taint (si lo configuraste)
+      # nodeSelector: { pool: cpu-workers }
+      # tolerations:
+      #   - key: "workload"
+      #     operator: "Equal"
+      #     value: "cpu"
+      #     effect: "NoSchedule"
+      containers:
+        - name: worker
+          image: docker.io/facundootero/worker-cpu:latest
+          imagePullPolicy: Always
+          env:
+            - { name: RABBITMQ_HOST,  value: "rabbitmq" }
+            - { name: EXCHANGE_BLOCK, value: "ExchangeBlock" }
+            # Reporta al pool (que reenvía al coordinator)
+            - { name: COORDINATOR_URL, value: "http://worker-pool.integrador.svc.cluster.local:5001/solved_task" }
+
+# =========================================
+# KEDA: TriggerAuthentication + ScaledObject
+# (requiere que KEDA esté instalado en el clúster)
+# =========================================
+---
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: rabbitmq-auth
+  namespace: integrador
+spec:
+  secretTargetRef:
+    - parameter: host
+      name: rabbitmq-conn
+      key: host
+---
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: worker-cpu-scale
+  namespace: integrador
+spec:
+  scaleTargetRef: { name: worker-cpu }
+  minReplicaCount: 0
+  maxReplicaCount: 200
+  pollingInterval: 5
+  cooldownPeriod: 60
+  triggers:
+    - type: rabbitmq
+      metadata:
+        protocol: amqp
+        queueName: pow.cpu
+        queueLength: "50"  # umbral de backlog por pod
+      authenticationRef:
+        name: rabbitmq-auth

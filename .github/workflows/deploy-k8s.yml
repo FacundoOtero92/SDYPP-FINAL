@@ -1,0 +1,53 @@
+name: Deploy to GKE
+on:
+  workflow_run:          # se dispara al terminar el build de imágenes
+    workflows: ["Build & Push (Docker Hub)"]
+    types: [completed]
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    runs-on: ubuntu-latest
+    permissions: { id-token: write, contents: read }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SA_EMAIL }}
+      - uses: google-github-actions/get-gke-credentials@v2
+        with:
+          cluster_name: ${{ secrets.GKE_CLUSTER }}
+          location: ${{ secrets.GKE_LOCATION }}
+
+      # Namespace + secrets desde secrets de GitHub (idempotente)
+      - name: Bootstrap K8s ns & secrets
+        run: |
+          kubectl create ns integrador --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n integrador create secret generic rabbitmq-auth \
+            --from-literal=user=guest --from-literal=pass=guest \
+            --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n integrador create secret generic rabbitmq-conn \
+            --from-literal=host='amqp://guest:guest@rabbitmq:5672/' \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      # (Si usás KEDA vía Helm, podés instalarlo aquí una vez)
+      # - run: |
+      #     helm repo add kedacore https://kedacore.github.io/charts
+      #     helm upgrade --install keda kedacore/keda -n keda --create-namespace
+
+      # Aplicar manifests (Rabbit/Redis/Coordinator/Pool/Workers/KEDA)
+      - name: Apply manifests
+        run: |
+          kubectl apply -f k8s/manifests/stack-integrador.yaml
+          kubectl -n integrador rollout status deploy/coordinator --timeout=180s || true
+          kubectl -n integrador rollout status deploy/worker-pool --timeout=180s || true
+          kubectl -n integrador rollout status deploy/worker-cpu --timeout=180s || true
+
+      # Si usás ":latest", forzá que tiren pull
+      - name: Rollout restart (pull latest)
+        run: |
+          kubectl -n integrador rollout restart deployment/coordinator
+          kubectl -n integrador rollout restart deployment/worker-pool
+          kubectl -n integrador rollout restart deployment/worker-cpu
