@@ -29,7 +29,7 @@ POOL_RK       = 'tasks'              # routing key para la inbox
 
 timer = 15
 datosBucket = []
-bucketName = 'bucket_integrador_final082025'
+bucketName = 'bucket_integrador_final092025'
 credentialPath = 'credentials.json'
 
 

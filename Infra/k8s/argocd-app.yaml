@@ -8,9 +8,14 @@ spec:
   source:
     repoURL: https://github.com/FacundoOtero92/SDYPP-FINAL.git
     targetRevision: main
-    path: k8s/manifests
+    path: Infra/k8s/manifests
   destination:
     server: https://kubernetes.default.svc
     namespace: integrador
   syncPolicy:
-    automated: { prune: true, selfHeal: true }
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+    - CreateNamespace=true
+    - SkipDryRunOnMissingResource=true
