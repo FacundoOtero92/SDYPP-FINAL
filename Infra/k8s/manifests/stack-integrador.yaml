@@ -116,31 +116,26 @@ kind: Deployment
 metadata:
   name: coordinator
   namespace: integrador
-spec:
-  replicas: 1
-  selector: { matchLabels: { app: coordinator } }
+  spec:
   template:
-    metadata: { labels: { app: coordinator } }
     spec:
-      # imagePullSecrets:
-      #   - name: dockerhub-cred
       containers:
         - name: coordinador
           image: docker.io/facundootero/coordinador:latest
-          imagePullPolicy: Always
           ports: [{ containerPort: 5000 }]
           env:
             - { name: RABBITMQ_HOST, value: "rabbitmq" }
-            - { name: POOL_EXCHANGE, value: "coordinator.inbox" }
-            - { name: POOL_QUEUE,    value: "pool.tasks" }
-            - { name: POOL_RK,       value: "tasks" }
             - { name: REDIS_HOST,    value: "redis-integrador" }
-          readinessProbe:
-            httpGet: { path: /alive, port: 5000 }
-            initialDelaySeconds: 5
+          # ⬇️ PONÉ LOS PROBES ACÁ (reemplazá los HTTP si existen)
           livenessProbe:
-            httpGet: { path: /alive, port: 5000 }
+            tcpSocket: { port: 5000 }
             initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket: { port: 5000 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
 
 # =========================================
 # WORKER-POOL
