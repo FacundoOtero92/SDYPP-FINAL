@@ -9,7 +9,9 @@ import time
 from google.cloud import storage
 
 app = Flask(__name__)
-
+@app.get("/alive")
+def alive():
+    return "ok", 200
 # =========================
 # VARIABLES
 # =========================
