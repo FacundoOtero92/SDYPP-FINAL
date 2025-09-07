@@ -1,2 +1,5 @@
 Infra/terraform/credentials.json
 Infra/terraform/credentials.json
+
+Infra/terraform/credentials.json
+*.json
