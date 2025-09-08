@@ -1,6 +1,6 @@
 name: Deploy to GKE
 on:
-  workflow_run:          # se dispara al terminar el build de imágenes
+  workflow_run:
     workflows: ["Build & Push (Docker Hub)"]
     types: [completed]
   workflow_dispatch: {}
@@ -9,45 +9,40 @@ jobs:
   deploy:
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
-    permissions: { id-token: write, contents: read }
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          # usa el mismo commit que disparó el workflow_run o el SHA actual si es manual
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
       - uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SA_EMAIL }}
+
       - uses: google-github-actions/get-gke-credentials@v2
         with:
           cluster_name: ${{ secrets.GKE_CLUSTER }}
           location: ${{ secrets.GKE_LOCATION }}
 
-      # Namespace + secrets desde secrets de GitHub (idempotente)
-      - name: Bootstrap K8s ns & secrets
+      - name: Debug tree (opcional)
         run: |
-          kubectl create ns integrador --dry-run=client -o yaml | kubectl apply -f -
-          kubectl -n integrador create secret generic rabbitmq-auth \
-            --from-literal=user=guest --from-literal=pass=guest \
-            --dry-run=client -o yaml | kubectl apply -f -
-          kubectl -n integrador create secret generic rabbitmq-conn \
-            --from-literal=host='amqp://guest:guest@rabbitmq:5672/' \
-            --dry-run=client -o yaml | kubectl apply -f -
+          pwd
+          ls -R Infra/k8s
+          git ls-files Infra/k8s/manifests
 
-      # (Si usás KEDA vía Helm, podés instalarlo aquí una vez)
-      # - run: |
-      #     helm repo add kedacore https://kedacore.github.io/charts
-      #     helm upgrade --install keda kedacore/keda -n keda --create-namespace
-
-       # Aplicar manifests (Rabbit/Redis/Coordinator/Pool/Workers/KEDA)
       - name: Apply manifests
         run: |
-          kubectl apply -R -f SDYPP-FINAL/Infra/k8s/manifests/
+          kubectl apply -R -f Infra/k8s/manifests/
           kubectl -n integrador rollout status deploy/coordinator --timeout=180s || true
           kubectl -n integrador rollout status deploy/worker-pool --timeout=180s || true
           kubectl -n integrador rollout status deploy/worker-cpu --timeout=180s || true
 
-      # Si usás ":latest", forzá que tiren pull
-      - name: Rollout restart (pull latest)
+      - name: Rollout restart (pull latest)  # si usás :latest
         run: |
-          kubectl -n integrador rollout restart deployment/coordinator
-          kubectl -n integrador rollout restart deployment/worker-pool
-          kubectl -n integrador rollout restart deployment/worker-cpu
+          kubectl -n integrador rollout restart deployment/coordinator || true
+          kubectl -n integrador rollout restart deployment/worker-pool || true
+          kubectl -n integrador rollout restart deployment/worker-cpu || true
