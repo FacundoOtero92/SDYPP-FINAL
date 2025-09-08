@@ -22,7 +22,7 @@ hostRabbit = 'rabbitmq'
 queueNameTx   = 'QueueTransactions'  # cola de transacciones entrantes
 exchangeBlock = 'ExchangeBlock'      # se mantiene declarado por compatibilidad
 
-# NUEVO: Inbox del worker-pool (coordinator -> pool)
+#  NUEVO: Inbox del worker-pool (coordinator -> pool)
 POOL_EXCHANGE = 'coordinator.inbox'  # exchange (direct)
 POOL_QUEUE    = 'pool.tasks'         # queue exclusiva del pool
 POOL_RK       = 'tasks'              # routing key para la inbox
