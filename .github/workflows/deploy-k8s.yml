@@ -40,7 +40,7 @@ jobs:
       # Aplicar manifests (Rabbit/Redis/Coordinator/Pool/Workers/KEDA)
       - name: Apply manifests
         run: |
-          kubectl apply -f k8s/manifests/stack-integrador.yaml
+          kubectl apply -R -f Infra/k8s/manifests/
           kubectl -n integrador rollout status deploy/coordinator --timeout=180s || true
           kubectl -n integrador rollout status deploy/worker-pool --timeout=180s || true
           kubectl -n integrador rollout status deploy/worker-cpu --timeout=180s || true
