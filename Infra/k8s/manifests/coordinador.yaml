@@ -15,7 +15,7 @@ spec:
       serviceAccountName: default
       containers:
         - name: coordinador
-          image: docker.io/facundootero/coordinator:7d2f294
+          image: docker.io/facundootero/coordinator:231a0db4247210fbd0eabb558bb2ab375719927b
           imagePullPolicy: Always
           ports: [{ containerPort: 5000 }]
           env:
