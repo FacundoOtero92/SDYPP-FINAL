@@ -94,41 +94,6 @@ spec:
           image: redis:7
           ports: [{ containerPort: 6379 }]
 
-# =========================================
-# COORDINATOR (publica a inbox del pool)
-# =========================================
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: coordinator
-  namespace: integrador
-  labels: { app: coordinator }
-spec:
-  replicas: 1
-  selector:
-    matchLabels: { app: coordinator }
-  template:
-    metadata:
-      labels: { app: coordinator }
-    spec:
-      serviceAccountName: default
-      containers:
-        - name: coordinador
-          image: docker.io/facundootero/coordinador:latest   # o tu tag fijo
-          imagePullPolicy: Always
-          ports: [{ containerPort: 5000 }]
-          env:
-            - { name: RABBITMQ_HOST, value: "rabbitmq" }
-            - { name: REDIS_HOST,    value: "redis-integrador" }
-          livenessProbe:
-            tcpSocket: { port: 5000 }
-            initialDelaySeconds: 10
-            periodSeconds: 10
-          readinessProbe:
-            tcpSocket: { port: 5000 }
-            initialDelaySeconds: 5
-            periodSeconds: 10
 
 # =========================================
 # WORKER-POOL
