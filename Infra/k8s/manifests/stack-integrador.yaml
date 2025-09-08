@@ -208,7 +208,7 @@ spec:
               PY
       containers:
         - name: pool
-          image: docker.io/facundootero/worker-pool:latest
+          image: docker.io/facundootero/coordinador:v1   # o :<sha>
           imagePullPolicy: Always
           ports: [{ containerPort: 5001 }]
           env:
