@@ -37,7 +37,7 @@ jobs:
       #     helm repo add kedacore https://kedacore.github.io/charts
       #     helm upgrade --install keda kedacore/keda -n keda --create-namespace
 
-      # Aplicar manifests (Rabbit/Redis/Coordinator/Pool/Workers/KEDA)
+       # Aplicar manifests (Rabbit/Redis/Coordinator/Pool/Workers/KEDA)
       - name: Apply manifests
         run: |
           kubectl apply -R -f SDYPP-FINAL\Infra\k8s\manifests\stack-integrador.yaml
