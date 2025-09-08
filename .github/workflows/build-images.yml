@@ -16,9 +16,12 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
+      
       - name: Build & Push
         run: |
-          IMAGE="docker.io/${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}"
-          docker build -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" "apps/${{ matrix.service }}"
-          docker push "$IMAGE:${{ github.sha }}"
-          docker push "$IMAGE:latest"
+            # mapear coordinator -> coordinador (resto igual)
+            if [ "${{ matrix.service }}" = "coordinator" ]; then REPO="coordinador"; else REPO="${{ matrix.service }}"; fi
+            IMAGE="docker.io/${{ secrets.DOCKER_USERNAME }}/$REPO"
+            docker build -t "$IMAGE:7d2f294963a2d1004cbb49f6c170a9dcb51fd70b" -t "$IMAGE:latest" "apps/${{ matrix.service }}"
+            docker push "$IMAGE:7d2f294963a2d1004cbb49f6c170a9dcb51fd70b"
+            docker push "$IMAGE:latest"
