@@ -15,7 +15,7 @@ spec:
       serviceAccountName: default
       containers:
         - name: coordinador
-          image: docker.io/facundootero/coordinator:latest   # mejor: fijá un tag (v1, sha)
+          image: docker.io/facundootero/coordinator:7d2f294   # mejor: fijá un tag (v1, sha)
           imagePullPolicy: Always
           ports: [{ containerPort: 5000 }]
           env:
