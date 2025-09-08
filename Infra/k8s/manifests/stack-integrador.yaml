@@ -98,35 +98,29 @@ spec:
 # COORDINATOR (publica a inbox del pool)
 # =========================================
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: coordinador-integrador
-  namespace: integrador
-spec:
-  type: ClusterIP
-  selector: { app: coordinator }
-  ports:
-    - name: http
-      port: 5000
-      targetPort: 5000
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: coordinator
   namespace: integrador
-  spec:
+  labels: { app: coordinator }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: coordinator }
   template:
+    metadata:
+      labels: { app: coordinator }
     spec:
+      serviceAccountName: default
       containers:
         - name: coordinador
-          image: docker.io/facundootero/coordinador:latest
+          image: docker.io/facundootero/coordinador:latest   # o tu tag fijo
+          imagePullPolicy: Always
           ports: [{ containerPort: 5000 }]
           env:
             - { name: RABBITMQ_HOST, value: "rabbitmq" }
             - { name: REDIS_HOST,    value: "redis-integrador" }
-          # ⬇️ PONÉ LOS PROBES ACÁ (reemplazá los HTTP si existen)
           livenessProbe:
             tcpSocket: { port: 5000 }
             initialDelaySeconds: 10
@@ -135,7 +129,6 @@ metadata:
             tcpSocket: { port: 5000 }
             initialDelaySeconds: 5
             periodSeconds: 10
-
 
 # =========================================
 # WORKER-POOL
@@ -161,80 +154,39 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: worker-pool
+  name: coordinator
   namespace: integrador
+  labels:
+    app: coordinator
 spec:
   replicas: 1
-  selector: { matchLabels: { app: worker-pool } }
+  selector:
+    matchLabels:
+      app: coordinator
   template:
-    metadata: { labels: { app: worker-pool } }
+    metadata:
+      labels:
+        app: coordinator
     spec:
-      # imagePullSecrets:
-      #   - name: dockerhub-cred
-      initContainers:
-        - name: declare-queues
-          image: python:3.11-slim
-          env:
-            - { name: RABBIT_HOST, value: "rabbitmq" }
-            - { name: RABBIT_USER, valueFrom: { secretKeyRef: { name: rabbitmq-auth, key: user } } }
-            - { name: RABBIT_PASS, valueFrom: { secretKeyRef: { name: rabbitmq-auth, key: pass } } }
-          command: ["/bin/sh","-c"]
-          args:
-            - |
-              pip install --no-cache-dir pika >/dev/null 2>&1
-              python - <<'PY'
-              import os, pika
-              host=os.getenv("RABBIT_HOST")
-              user=os.getenv("RABBIT_USER"); pwd=os.getenv("RABBIT_PASS")
-              con=pika.BlockingConnection(pika.ConnectionParameters(
-                host=host, credentials=pika.PlainCredentials(user,pwd)))
-              ch=con.channel()
-              # Inbox del pool
-              ch.exchange_declare(exchange="coordinator.inbox", exchange_type="direct", durable=True)
-              ch.queue_declare(queue="pool.tasks", durable=True, arguments={"x-queue-type":"quorum"})
-              ch.queue_bind(exchange="coordinator.inbox", queue="pool.tasks", routing_key="tasks")
-              # Trabajo a workers
-              ch.exchange_declare(exchange="ExchangeBlock", exchange_type="direct", durable=True)
-              ch.queue_declare(queue="pow.gpu", durable=True, arguments={
-                "x-queue-type":"quorum",
-                "x-message-ttl": 30000,  # 30s → ajustá según p95 GPU
-                "x-dead-letter-exchange":"ExchangeBlock",
-                "x-dead-letter-routing-key":"pow.cpu"
-              })
-              ch.queue_bind(exchange="ExchangeBlock", queue="pow.gpu", routing_key="pow.gpu")
-              ch.queue_declare(queue="pow.cpu", durable=True, arguments={"x-queue-type":"quorum"})
-              ch.queue_bind(exchange="ExchangeBlock", queue="pow.cpu", routing_key="pow.cpu")
-              con.close(); print("Queues ready")
-              PY
+      serviceAccountName: default
       containers:
-        - name: pool
-          image: docker.io/facundootero/coordinador:v1   # o :<sha>
+        - name: coordinador
+          image: docker.io/facundootero/coordinador:latest   # o tu tag fijo
           imagePullPolicy: Always
-          ports: [{ containerPort: 5001 }]
+          ports:
+            - containerPort: 5000
           env:
-            # RabbitMQ
             - { name: RABBITMQ_HOST, value: "rabbitmq" }
-            - { name: RABBITMQ_USER, valueFrom: { secretKeyRef: { name: rabbitmq-auth, key: user } } }
-            - { name: RABBITMQ_PASS, valueFrom: { secretKeyRef: { name: rabbitmq-auth, key: pass } } }
-            # Inbox del pool
-            - { name: POOL_EXCHANGE, value: "coordinator.inbox" }
-            - { name: POOL_QUEUE,    value: "pool.tasks" }
-            - { name: POOL_RK,       value: "tasks" }
-            # Trabajo a workers
-            - { name: EXCHANGE_BLOCK, value: "ExchangeBlock" }
-            - { name: RK_GPU, value: "pow.gpu" }
-            - { name: RK_CPU, value: "pow.cpu" }
-            # TTL GPU→CPU y particionado
-            - { name: GPU_TTL_MS,  value: "30000" }
-            - { name: POOL_CHUNKS, value: "8" }
-            # Reenvío de resultados
-            - { name: COORDINATOR_URL, value: "http://coordinador-integrador:5000" }
-          readinessProbe:
-            httpGet: { path: /alive, port: 5001 }
-            initialDelaySeconds: 5
+            - { name: REDIS_HOST,    value: "redis-integrador" }
+          # Probes: dejá TCP si no querés depender de /alive
           livenessProbe:
-            httpGet: { path: /alive, port: 5001 }
+            tcpSocket: { port: 5000 }
             initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket: { port: 5000 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
 
 # =========================================
 # WORKERS CPU (escala con KEDA por backlog en pow.cpu)
