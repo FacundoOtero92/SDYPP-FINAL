@@ -9,13 +9,10 @@ jobs:
   deploy:
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
+    permissions: { id-token: write, contents: read }
     steps:
       - uses: actions/checkout@v4
         with:
-          # usa el mismo commit que disparó el workflow_run o el SHA actual si es manual
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - uses: google-github-actions/auth@v2
@@ -28,21 +25,23 @@ jobs:
           cluster_name: ${{ secrets.GKE_CLUSTER }}
           location: ${{ secrets.GKE_LOCATION }}
 
-      - name: Debug tree (opcional)
+      - name: Render coordinator (IMAGE_TAG = commit SHA)
         run: |
-          pwd
-          ls -R Infra/k8s
-          git ls-files Infra/k8s/manifests
+          sudo apt-get update && sudo apt-get install -y gettext-base
+          export IMAGE_TAG=${{ github.sha }}
+          envsubst < Infra/k8s/manifests/30-coordinator.tmpl.yaml > /tmp/30-coordinator.yaml
 
       - name: Apply manifests
         run: |
-          kubectl apply -R -f Infra/k8s/manifests/
+          kubectl apply -f Infra/k8s/manifests/00-namespace.yaml
+          kubectl apply -f Infra/k8s/manifests/10-rabbitmq.yaml
+          kubectl apply -f Infra/k8s/manifests/20-redis.yaml
+          kubectl apply -f /tmp/30-coordinator.yaml
+          kubectl apply -f Infra/k8s/manifests/40-worker-pool.yaml
+
+      - name: Wait for rollouts
+        run: |
+          kubectl -n integrador rollout status deploy/rabbitmq --timeout=180s || true
+          kubectl -n integrador rollout status deploy/redis-integrador --timeout=180s || true
           kubectl -n integrador rollout status deploy/coordinator --timeout=180s || true
           kubectl -n integrador rollout status deploy/worker-pool --timeout=180s || true
-          kubectl -n integrador rollout status deploy/worker-cpu --timeout=180s || true
-
-      - name: Rollout restart (pull latest)  # si usás :latest
-        run: |
-          kubectl -n integrador rollout restart deployment/coordinator || true
-          kubectl -n integrador rollout restart deployment/worker-pool || true
-          kubectl -n integrador rollout restart deployment/worker-cpu || true
