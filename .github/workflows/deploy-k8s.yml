@@ -27,18 +27,24 @@ jobs:
                 location: ${{ secrets.GKE_LOCATION }} 
 
       - name: Render coordinator (IMAGE_TAG = commit SHA)
+        shell: bash
         run: |
             sudo apt-get update && sudo apt-get install -y gettext-base
-            export GITHUB_SHA=${{ github.sha }}
+            export IMAGE_TAG="${{ github.event.workflow_run.head_sha || github.sha }}"
+            echo "IMAGE_TAG=$IMAGE_TAG"
             envsubst < Infra/k8s/manifests/coordinador.yaml > /tmp/coordinador.yaml
+            echo "----- coordinador.yaml renderizado -----"
+            sed -n '1,200p' /tmp/coordinador.yaml
+
 
       - name: Apply manifests
+        shell: bash
         run: |
-          kubectl apply -f Infra/k8s/manifests/rabbitmq.yaml
-          kubectl apply -f Infra/k8s/manifests/redis.yaml
-          kubectl apply -f Infra/k8s/manifests/coordinador.yaml
-          kubectl apply -f Infra/k8s/manifests/worker-pool.yaml
-          kubectl apply -f /tmp/coordinador.yaml
+            kubectl apply -f Infra/k8s/manifests/rabbitmq.yaml
+            kubectl apply -f Infra/k8s/manifests/redis.yaml
+            kubectl apply -f Infra/k8s/manifests/worker-pool.yaml
+            kubectl apply -f /tmp/coordinador.yaml
+
 
       - name: Wait for rollouts
         run: |
