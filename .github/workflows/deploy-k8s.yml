@@ -28,17 +28,17 @@ jobs:
 
       - name: Render coordinator (IMAGE_TAG = commit SHA)
         run: |
-          sudo apt-get update && sudo apt-get install -y gettext-base
-          export IMAGE_TAG=${{ github.sha }}
-          envsubst < Infra/k8s/manifests/30-coordinator.tmpl.yaml > /tmp/30-coordinator.yaml
+            sudo apt-get update && sudo apt-get install -y gettext-base
+            export GITHUB_SHA=${{ github.sha }}
+            envsubst < Infra/k8s/manifests/coordinador.yaml > /tmp/coordinador.yaml
 
       - name: Apply manifests
         run: |
-          kubectl apply -f Infra/k8s/manifests/00-namespace.yaml
-          kubectl apply -f Infra/k8s/manifests/10-rabbitmq.yaml
-          kubectl apply -f Infra/k8s/manifests/20-redis.yaml
-          kubectl apply -f /tmp/30-coordinator.yaml
-          kubectl apply -f Infra/k8s/manifests/40-worker-pool.yaml
+          kubectl apply -f Infra/k8s/manifests/rabbitmq.yaml
+          kubectl apply -f Infra/k8s/manifests/redis.yaml
+          kubectl apply -f Infra/k8s/manifests/coordinador.yaml
+          kubectl apply -f Infra/k8s/manifests/worker-pool.yaml
+          kubectl apply -f /tmp/coordinador.yaml
 
       - name: Wait for rollouts
         run: |
