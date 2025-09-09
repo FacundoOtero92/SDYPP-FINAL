@@ -12,7 +12,7 @@ app = Flask(__name__)
 @app.get("/alive")
 def alive():
     return "ok", 200
-# = ========================
+#  = ========================
 # VARIABLES
 # =========================
 hostRedis = 'redis-integrador'
