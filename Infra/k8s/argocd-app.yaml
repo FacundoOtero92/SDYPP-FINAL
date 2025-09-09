@@ -6,9 +6,11 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/FacundoOtero92/SDYPP-FINAL.git
+    repoURL: 'https://github.com/FacundoOtero92/SDYPP-FINAL.git'
     targetRevision: main
     path: Infra/k8s/manifests
+    directory:
+      recurse: true
   destination:
     server: https://kubernetes.default.svc
     namespace: integrador
@@ -17,5 +19,6 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - SkipDryRunOnMissingResource=true
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - SkipDryRunOnMissingResource=true

@@ -19,7 +19,9 @@ jobs:
           password: ${{ secrets.DOCKER_PASSWORD }}
       - name: Build & Push
         run: |
-          IMAGE="docker.io/${{ secrets.DOCKER_USERNAME }}/${{ matrix.service }}"
-          docker build -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" "apps/${{ matrix.service }}"
-          docker push "$IMAGE:${{ github.sha }}"
-          docker push "$IMAGE:latest"
+            set -euo pipefail
+            IMAGE="docker.io/${{ secrets.DOCKER_USERNAME }}/coordinator"
+            docker build -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" apps/coordinator
+            docker push "$IMAGE:${{ github.sha }}"
+            docker push "$IMAGE:latest"
+

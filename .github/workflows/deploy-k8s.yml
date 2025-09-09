@@ -46,15 +46,29 @@ jobs:
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Render coordinator (IMAGE_TAG = commit SHA)
+        shell: bash
         run: |
-          set -euo pipefail
-          sudo apt-get update >/dev/null && sudo apt-get install -y gettext-base >/dev/null
-          export IMAGE_TAG="${{ github.event.workflow_run.head_sha || github.sha }}"
-          echo "IMAGE_TAG=$IMAGE_TAG"
-          envsubst < Infra/k8s/manifests/coordinador.yaml > /tmp/coordinador.yaml
-          # sanity check: que no quede el placeholder sin reemplazar
-          ! grep -q '\${IMAGE_TAG' /tmp/coordinador.yaml || { echo "ERROR: placeholder no renderizado"; exit 1; }
-          sed -n '1,120p' /tmp/coordinador.yaml
+            set -euo pipefail
+            sudo apt-get update && sudo apt-get install -y gettext-base
+
+            # Tag = SHA del workflow_run (build) o el SHA actual si es manual
+            IMAGE_TAG="${{ github.event.workflow_run.head_sha || github.sha }}"
+            # Fallback por si alguna vez llega vacío
+            : "${IMAGE_TAG:=latest}"
+            echo "IMAGE_TAG=$IMAGE_TAG"
+
+            # Renderiza solo la variable usada
+            envsubst '${IMAGE_TAG}' < Infra/k8s/manifests/coordinador.yaml > /tmp/coordinador.yaml
+
+            # Verificación: no debe quedar el placeholder
+            if grep -q '\${IMAGE_TAG}' /tmp/coordinador.yaml; then
+            echo "ERROR: placeholder no renderizado"
+            exit 1
+            fi
+
+            echo "----- coordinador.yaml renderizado -----"
+            sed -n '1,200p' /tmp/coordinador.yaml
+
 
       - name: Apply manifests (orden recomendado)
         run: |

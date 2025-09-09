@@ -3,24 +3,49 @@ kind: Deployment
 metadata:
   name: coordinator
   namespace: integrador
-  labels: { app: coordinator }
+  labels:
+    app: coordinator
 spec:
   replicas: 1
+  revisionHistoryLimit: 2
+  strategy:          
+    type: Recreate   #
   selector:
-    matchLabels: { app: coordinator }
+    matchLabels:
+      app: coordinator
   template:
     metadata:
-      labels: { app: coordinator }
+      labels:
+        app: coordinator
     spec:
-      imagePullSecrets:
-        - name: dockerhub-cred
+      # Descomenta si tu repo de Docker fuera privado
+      # imagePullSecrets:
+      #   - name: dockerhub-cred
       containers:
         - name: coordinador
-          image: "docker.io/facundootero/coordinator:${IMAGE_TAG:-latest}"
-          imagePullPolicy: Always
-          ports: [ { containerPort: 5000 } ]
+          image: docker.io/facundootero/coordinator:${IMAGE_TAG}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
           env:
-            - { name: RABBITMQ_HOST, value: "rabbitmq" }
-            - { name: REDIS_HOST,    value: "redis-integrador" }
-          livenessProbe:  { tcpSocket: { port: 5000 }, initialDelaySeconds: 10, periodSeconds: 10 }
-          readinessProbe: { tcpSocket: { port: 5000 }, initialDelaySeconds: 5,  periodSeconds: 10 }
+            - name: RABBITMQ_HOST
+              value: rabbitmq
+            - name: REDIS_HOST
+              value: redis-integrador
+          livenessProbe:
+            tcpSocket:
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            tcpSocket:
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
