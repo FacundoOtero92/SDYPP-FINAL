@@ -1,4 +1,5 @@
 name: Deploy to GKE
+
 on:
   workflow_run:
     workflows: ["Build & Push (Docker Hub)"]
@@ -9,46 +10,72 @@ jobs:
   deploy:
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
-    permissions: { id-token: write, contents: read }
+    permissions:
+      id-token: write
+      contents: read
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout (mismo commit del build o el actual si es manual)
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
-      - uses: google-github-actions/auth@v2
+      - name: Auth GCP (Workload Identity)
+        uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SA_EMAIL }}
 
-      - uses: google-github-actions/get-gke-credentials@v2
+      - name: Get GKE credentials
+        uses: google-github-actions/get-gke-credentials@v2
         with:
-                project_id: ${{ secrets.GCP_PROJECT_ID }}
-                cluster_name: ${{ secrets.GKE_CLUSTER }}
-                location: ${{ secrets.GKE_LOCATION }} 
+          project_id:  ${{ secrets.GCP_PROJECT_ID }}
+          cluster_name: ${{ secrets.GKE_CLUSTER }}
+          location:    ${{ secrets.GKE_LOCATION }}
+
+      - name: Bootstrap namespace & secrets (idempotente)
+        run: |
+          set -euo pipefail
+          kubectl create ns integrador --dry-run=client -o yaml | kubectl apply -f -
+          # Secrets básicos para RabbitMQ (ajusta si tus manifests ya lo traen embebido)
+          kubectl -n integrador create secret generic rabbitmq-auth \
+            --from-literal=user=guest --from-literal=pass=guest \
+            --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n integrador create secret generic rabbitmq-conn \
+            --from-literal=host='amqp://guest:guest@rabbitmq:5672/' \
+            --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Render coordinator (IMAGE_TAG = commit SHA)
-        shell: bash
         run: |
-            sudo apt-get update && sudo apt-get install -y gettext-base
-            export IMAGE_TAG="${{ github.event.workflow_run.head_sha || github.sha }}"
-            echo "IMAGE_TAG=$IMAGE_TAG"
-            envsubst < Infra/k8s/manifests/coordinador.yaml > /tmp/coordinador.yaml
-            echo "----- coordinador.yaml renderizado -----"
-            sed -n '1,200p' /tmp/coordinador.yaml
+          set -euo pipefail
+          sudo apt-get update >/dev/null && sudo apt-get install -y gettext-base >/dev/null
+          export IMAGE_TAG="${{ github.event.workflow_run.head_sha || github.sha }}"
+          echo "IMAGE_TAG=$IMAGE_TAG"
+          envsubst < Infra/k8s/manifests/coordinador.yaml > /tmp/coordinador.yaml
+          # sanity check: que no quede el placeholder sin reemplazar
+          ! grep -q '\${IMAGE_TAG' /tmp/coordinador.yaml || { echo "ERROR: placeholder no renderizado"; exit 1; }
+          sed -n '1,120p' /tmp/coordinador.yaml
 
-
-      - name: Apply manifests
-        shell: bash
+      - name: Apply manifests (orden recomendado)
         run: |
-            kubectl apply -f Infra/k8s/manifests/rabbitmq.yaml
-            kubectl apply -f Infra/k8s/manifests/redis.yaml
-            kubectl apply -f Infra/k8s/manifests/worker-pool.yaml
-            kubectl apply -f /tmp/coordinador.yaml
-
+          set -euo pipefail
+          kubectl apply -f Infra/k8s/manifests/rabbitmq.yaml
+          kubectl apply -f Infra/k8s/manifests/redis.yaml
+          kubectl apply -f Infra/k8s/manifests/worker-pool.yaml
+          # El coordinator renderizado (pisa cualquier definition previa)
+          kubectl apply -f /tmp/coordinador.yaml
 
       - name: Wait for rollouts
         run: |
+          set -euo pipefail
           kubectl -n integrador rollout status deploy/rabbitmq --timeout=180s || true
           kubectl -n integrador rollout status deploy/redis-integrador --timeout=180s || true
-          kubectl -n integrador rollout status deploy/coordinator --timeout=180s || true
           kubectl -n integrador rollout status deploy/worker-pool --timeout=180s || true
+          kubectl -n integrador rollout status deploy/coordinator --timeout=180s || true
+
+      - name: Debug imágenes efectivas
+        run: |
+          echo "Coordinator (spec):"
+          kubectl -n integrador get deploy/coordinator -o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+          echo "Coordinator (pod real):"
+          kubectl -n integrador get pod -l app=coordinator -o jsonpath='{.items[0].status.containerStatuses[0].image}{"\n"}{.items[0].status.containerStatuses[0].imageID}{"\n"}'

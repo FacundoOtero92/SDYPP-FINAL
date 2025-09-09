@@ -16,7 +16,6 @@ spec:
         - name: dockerhub-cred
       containers:
         - name: coordinador
-          # si IMAGE_TAG no está, usa "latest"
           image: "docker.io/facundootero/coordinator:${IMAGE_TAG:-latest}"
           imagePullPolicy: Always
           ports: [ { containerPort: 5000 } ]
