@@ -4,30 +4,12 @@ metadata:
   name: rabbitmq
   namespace: integrador
 spec:
-  type: ClusterIP
-  selector: { app: rabbitmq }
+  selector:
+    app: rabbitmq
   ports:
     - name: amqp
       port: 5672
       targetPort: 5672
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: rabbitmq
-  namespace: integrador
-spec:
-  replicas: 1
-  selector: { matchLabels: { app: rabbitmq } }
-  template:
-    metadata: { labels: { app: rabbitmq } }
-    spec:
-      containers:
-        - name: rabbitmq
-          image: rabbitmq:3-management
-          ports:
-            - containerPort: 5672
-            - containerPort: 15672
 ---
 apiVersion: v1
 kind: Service
@@ -35,9 +17,33 @@ metadata:
   name: rabbitmq-ui
   namespace: integrador
 spec:
-  type: ClusterIP
-  selector: { app: rabbitmq }
+  selector:
+    app: rabbitmq
   ports:
     - name: http
       port: 15672
       targetPort: 15672
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbitmq
+  namespace: integrador
+  labels: { app: rabbitmq }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: rabbitmq }
+  template:
+    metadata:
+      labels: { app: rabbitmq }
+    spec:
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:3-management
+          ports:
+            - containerPort: 5672
+            - containerPort: 15672
+          resources:
+            requests: { cpu: "100m", memory: "128Mi" }
+            limits:   { memory: "256Mi" }

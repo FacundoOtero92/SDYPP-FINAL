@@ -6,19 +6,17 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/FacundoOtero92/SDYPP-FINAL.git'
+    repoURL: https://github.com/tu-usuario/tu-repo.git
     targetRevision: main
     path: Infra/k8s/manifests
-    directory:
-      recurse: true
   destination:
     server: https://kubernetes.default.svc
     namespace: integrador
   syncPolicy:
     automated:
-      prune: true
+      prune: true       # <<--- acá
       selfHeal: true
     syncOptions:
-      - CreateNamespace=true
-      - ServerSideApply=true
-      - SkipDryRunOnMissingResource=true
+    - CreateNamespace=true
+    - PrunePropagationPolicy=foreground
+    - PruneLast=true

@@ -4,8 +4,8 @@ metadata:
   name: redis-integrador
   namespace: integrador
 spec:
-  type: ClusterIP
-  selector: { app: redis-integrador }
+  selector:
+    app: redis-integrador
   ports:
     - port: 6379
       targetPort: 6379
@@ -15,13 +15,19 @@ kind: Deployment
 metadata:
   name: redis-integrador
   namespace: integrador
+  labels: { app: redis-integrador }
 spec:
   replicas: 1
-  selector: { matchLabels: { app: redis-integrador } }
+  selector:
+    matchLabels: { app: redis-integrador }
   template:
-    metadata: { labels: { app: redis-integrador } }
+    metadata:
+      labels: { app: redis-integrador }
     spec:
       containers:
         - name: redis
           image: redis:7
-          ports: [{ containerPort: 6379 }]
+          ports: [ { containerPort: 6379 } ]
+          resources:
+            requests: { cpu: "50m",  memory: "64Mi" }
+            limits:   { memory: "128Mi" }
