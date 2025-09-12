@@ -299,7 +299,7 @@ def processPackages():
 
             print(f"blockchainContent: {block['blockchainContent']}", flush=True)
 
-            # Guardar en bucket (persistimos el bloque “madre”)
+             # Guardar en bucket (persistimos el bloque “madre”)
             global datosBucket
             datosBucket.append(block)
             bucket = bucketConnect(bucketName)
