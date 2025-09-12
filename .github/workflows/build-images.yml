@@ -49,18 +49,14 @@ jobs:
       # Ajustá la ruta si tu archivo no está en la raíz
       - name: Bump image in coordinador.yaml
         env:
-          MANIFEST: Infra/k8s/manifests/coordinador.yaml                  # <--- CAMBIÁ ruta si aplica
-          CONTAINER_NAME: coordinador                 # <--- name: del contenedor en el Deployment
+          MANIFEST: Infra/k8s/manifests/coordinador.yaml   # <- tu ruta
+          CONTAINER_NAME: coordinador                      # <- coincide con el YAML que pasaste
+          IMAGE_REPO: docker.io/***/coordinator            # <- tu repo
         run: |
-          yq -i '
-            .spec.template.spec.containers |=
-              ( map( if .name == env(CONTAINER_NAME)
-                     then .image = (env(IMAGE_REPO) + ":" + env(TAG))
-                     else . end )
-              )
-          ' "$MANIFEST"
+          yq -i '(.spec.template.spec.containers[] | select(.name == env(CONTAINER_NAME)).image) = (env(IMAGE_REPO) + ":" + env(TAG))' "$MANIFEST"
           echo "Preview post-change:"
           grep -nE "image:|name:" "$MANIFEST" || true
+
 
       - name: Commit & Push manifest change
         run: |
