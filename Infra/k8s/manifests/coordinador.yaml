@@ -57,7 +57,7 @@ metadata:
 spec:
   type: LoadBalancer
   selector:
-    app: coordinador
+    app: coordinator
   ports:
     - protocol: TCP
       port: 5000
