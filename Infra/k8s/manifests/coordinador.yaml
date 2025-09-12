@@ -18,6 +18,7 @@ spec:
       labels:
         app: coordinator
     spec:
+      serviceAccountName: coordinator-ksa
       # Descomenta si tu repo de Docker fuera privado
       # imagePullSecrets:
       #   - name: dockerhub-cred
