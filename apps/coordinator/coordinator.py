@@ -80,7 +80,7 @@ def queueConnect():
 #  =========================
 # Bucket (GCS)
 # =========================
-def bucketConnect(bucketName, credentialPath):
+def bucketConnect(bucketName):
     print(f"[DEBUG] Conectando al bucket: {bucketName}", flush=True)
     # bucketClient = storage.Client.from_service_account_json(credentialPath)
     bucketClient = storage.Client()
@@ -205,7 +205,7 @@ def receive_solved_task():
         return jsonify({'status': 'error', 'message': 'No data received'}), 400
 
     print(f"Received data: {data}", flush=True)
-    bucket = bucketConnect(bucketName, credentialPath)
+    bucket = bucketConnect(bucketName)
     block = descargarBlock(bucket, data['blockId'])
 
     dataHash = data['result'] + block['baseStringChain'] + block['blockchainContent']
@@ -302,7 +302,7 @@ def processPackages():
             # Guardar en bucket (persistimos el bloque “madre”)
             global datosBucket
             datosBucket.append(block)
-            bucket = bucketConnect(bucketName, credentialPath)
+            bucket = bucketConnect(bucketName)
             subirBlock(bucket, block)
 
             # NUEVO: Publicar tarea madre a la INBOX del POOL
