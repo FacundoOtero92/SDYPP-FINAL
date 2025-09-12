@@ -8,8 +8,8 @@ metadata:
 spec:
   replicas: 1
   revisionHistoryLimit: 2
-  strategy:          
-    type: Recreate   #
+  strategy:
+    type: Recreate #
   selector:
     matchLabels:
       app: coordinator
@@ -24,7 +24,7 @@ spec:
       #   - name: dockerhub-cred
       containers:
         - name: coordinador
-          image: docker.io/facundootero/coordinator:latest
+          image: docker.io/***/coordinator:6518f11207f2133711ed3321e8bf1a2027c5459e
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
@@ -63,3 +63,6 @@ spec:
     - protocol: TCP
       port: 5000
       targetPort: 5000
+  template:
+    spec:
+      containers: []
