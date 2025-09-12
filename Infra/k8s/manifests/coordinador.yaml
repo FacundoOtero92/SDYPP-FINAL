@@ -24,7 +24,7 @@ spec:
       #   - name: dockerhub-cred
       containers:
         - name: coordinador
-          image: docker.io/***/coordinator:6518f11207f2133711ed3321e8bf1a2027c5459e
+          image: docker.io/***/coordinator:e1cd50e4ab2a22781e4066d9fb2270aff4d72407
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
