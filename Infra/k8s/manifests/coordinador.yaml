@@ -54,12 +54,11 @@ apiVersion: v1
 kind: Service
 metadata:
   name: coordinador-integrador
-  namespace: integrador
 spec:
   type: LoadBalancer
   selector:
-    app: coordinator
+    app: coordinador
   ports:
-    - name: http
-      port: 80
+    - protocol: TCP
+      port: 5000
       targetPort: 5000
