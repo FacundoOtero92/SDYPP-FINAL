@@ -79,7 +79,7 @@ def queueConnect():
 
 #  =========================
 # Bucket (GCS)
-# =========================
+#  =========================
 def bucketConnect(bucketName):
     print(f"[DEBUG] Conectando al bucket: {bucketName}", flush=True)
     # bucketClient = storage.Client.from_service_account_json(credentialPath)
