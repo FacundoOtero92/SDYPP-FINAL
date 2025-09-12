@@ -75,7 +75,6 @@ jobs:
           set -euo pipefail
           kubectl apply -f Infra/k8s/manifests/rabbitmq.yaml
           kubectl apply -f Infra/k8s/manifests/redis.yaml
-          kubectl apply -f Infra/k8s/manifests/worker-pool.yaml
           # El coordinator renderizado (pisa cualquier definition previa)
           kubectl apply -f /tmp/coordinador.yaml
 
@@ -84,7 +83,6 @@ jobs:
           set -euo pipefail
           kubectl -n integrador rollout status deploy/rabbitmq --timeout=180s || true
           kubectl -n integrador rollout status deploy/redis-integrador --timeout=180s || true
-          kubectl -n integrador rollout status deploy/worker-pool --timeout=180s || true
           kubectl -n integrador rollout status deploy/coordinator --timeout=180s || true
 
       - name: Debug imágenes efectivas
