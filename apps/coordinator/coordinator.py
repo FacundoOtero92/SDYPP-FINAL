@@ -77,7 +77,7 @@ def queueConnect():
     return connection, channel
 
 
-# =========================
+#  =========================
 # Bucket (GCS)
 # =========================
 def bucketConnect(bucketName, credentialPath):
