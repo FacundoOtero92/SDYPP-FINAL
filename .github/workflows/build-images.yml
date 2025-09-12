@@ -6,22 +6,72 @@ on:
       - ".github/workflows/build-images.yml"
   workflow_dispatch: {}
 
+permissions:
+  contents: write   # <-- para poder commitear el cambio del manifest
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      matrix: { service: [coordinator, worker-pool] }
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Set vars
+        run: |
+          echo "IMAGE_REPO=docker.io/${{ secrets.DOCKER_USERNAME }}/coordinator" >> $GITHUB_ENV
+          echo "TAG=${{ github.sha }}" >> $GITHUB_ENV
+          # Si querés otro formato de tag:
+          # echo "TAG=v${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}" >> $GITHUB_ENV
+
       - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
+
       - name: Build & Push
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/coordinator
+          push: true
+          tags: |
+            ${{ env.IMAGE_REPO }}:${{ env.TAG }}
+            ${{ env.IMAGE_REPO }}:latest
+
+      # Instalar yq para editar YAML
+      - name: Install yq
         run: |
-            set -euo pipefail
-            IMAGE="docker.io/${{ secrets.DOCKER_USERNAME }}/coordinator"
-            docker build -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" apps/coordinator
-            docker push "$IMAGE:${{ github.sha }}"
-            docker push "$IMAGE:latest"
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+          yq --version
+
+      # ACTUALIZA tu manifest para usar el tag inmutable recién publicado
+      # Ajustá la ruta si tu archivo no está en la raíz
+      - name: Bump image in coordinador.yaml
+        env:
+          MANIFEST: Infra/k8s/manifests/coordinador.yaml                  # <--- CAMBIÁ ruta si aplica
+          CONTAINER_NAME: coordinador                 # <--- name: del contenedor en el Deployment
+        run: |
+          yq -i '
+            .spec.template.spec.containers |=
+              ( map( if .name == env(CONTAINER_NAME)
+                     then .image = (env(IMAGE_REPO) + ":" + env(TAG))
+                     else . end )
+              )
+          ' "$MANIFEST"
+          echo "Preview post-change:"
+          grep -nE "image:|name:" "$MANIFEST" || true
+
+      - name: Commit & Push manifest change
+        run: |
+          git config user.name  "ci-bot"
+          git config user.email "ci-bot@users.noreply.github.com"
+          git add coordinador.yaml
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "chore: bump coordinator -> ${{ env.IMAGE_REPO }}:${{ env.TAG }}"
+          git push
+
 
