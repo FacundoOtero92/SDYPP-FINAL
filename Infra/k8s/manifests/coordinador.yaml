@@ -49,3 +49,17 @@ spec:
             limits:
               cpu: "200m"
               memory: "256Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: coordinador-integrador
+  namespace: integrador
+spec:
+  type: LoadBalancer
+  selector:
+    app: coordinator
+  ports:
+    - name: http
+      port: 80
+      targetPort: 5000
