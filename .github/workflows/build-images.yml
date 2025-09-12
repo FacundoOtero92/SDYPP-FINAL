@@ -47,27 +47,29 @@ jobs:
 
       # ACTUALIZA tu manifest para usar el tag inmutable recién publicado
       # Ajustá la ruta si tu archivo no está en la raíz
-      - name: Bump image in coordinador.yaml
+      - name: Bump image in manifest
         env:
-          MANIFEST: Infra/k8s/manifests/coordinador.yaml   # <- tu ruta
-          CONTAINER_NAME: coordinador                      # <- coincide con el YAML que pasaste
-          IMAGE_REPO: docker.io/***/coordinator            # <- tu repo
+          MANIFEST: Infra/k8s/manifests/coordinador.yaml   # <— RUTA CORRECTA
+          CONTAINER_NAME: coordinador
+          IMAGE_REPO: docker.io/***/coordinator
         run: |
           yq -i '(.spec.template.spec.containers[] | select(.name == env(CONTAINER_NAME)).image) = (env(IMAGE_REPO) + ":" + env(TAG))' "$MANIFEST"
           echo "Preview post-change:"
           grep -nE "image:|name:" "$MANIFEST" || true
 
-
       - name: Commit & Push manifest change
+        env:
+          MANIFEST: Infra/k8s/manifests/coordinador.yaml   # <— misma ruta
         run: |
           git config user.name  "ci-bot"
           git config user.email "ci-bot@users.noreply.github.com"
-          git add coordinador.yaml
+          git add "$MANIFEST"
           if git diff --cached --quiet; then
             echo "No changes to commit."
             exit 0
           fi
-          git commit -m "chore: bump coordinator -> ${{ env.IMAGE_REPO }}:${{ env.TAG }}"
+          git commit -m "chore: bump coordinator -> $IMAGE_REPO:$TAG"
           git push
+
 
 
