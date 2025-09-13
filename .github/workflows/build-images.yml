@@ -1,65 +1,87 @@
 name: Build & Push (Docker Hub)
+
 on:
   push:
+    branches: [ main ]
     paths:
       - "apps/**"
+      - "Infra/k8s/manifests/coordinador.yaml"
       - ".github/workflows/build-images.yml"
+    tags:
+      - "v*"        # si pusheás un tag tipo v1.2.3, publica también :1.2.3
   workflow_dispatch: {}
 
 permissions:
-  contents: write   # <-- para poder commitear el cambio del manifest
+  contents: write     # para commitear el bump del manifest
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           persist-credentials: true
 
-      - name: Set vars
+      - name: Set vars (hardcode repo + sha + semver si aplica)
         run: |
-          echo "IMAGE_REPO=docker.io/${{ secrets.DOCKER_USERNAME }}/coordinator" >> $GITHUB_ENV
-          echo "TAG=${{ github.sha }}" >> $GITHUB_ENV
-          # Si querés otro formato de tag:
-          # echo "TAG=v${GITHUB_RUN_NUMBER}-${GITHUB_SHA::7}" >> $GITHUB_ENV
+          echo "IMAGE_REPO=docker.io/facundootero/coordinator" >> $GITHUB_ENV
+          echo "TAG_SHA=${GITHUB_SHA}" >> $GITHUB_ENV
+          # Si el push viene por un tag vX.Y.Z, extrae  X.Y.Z
+          if [[ "${GITHUB_REF_TYPE}" == "tag" && "${GITHUB_REF_NAME}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "TAG_SEMVER=${GITHUB_REF_NAME#v}" >> $GITHUB_ENV
+          else
+            echo "TAG_SEMVER=" >> $GITHUB_ENV
+          fi
 
-      - uses: docker/login-action@v3
+      - name: Docker login
+        uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
+          username: facundootero
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Build & Push
+      - name: Build & Push (sha + latest)
         uses: docker/build-push-action@v6
         with:
           context: apps/coordinator
           push: true
           tags: |
-            ${{ env.IMAGE_REPO }}:${{ env.TAG }}
+            ${{ env.IMAGE_REPO }}:${{ env.TAG_SHA }}
             ${{ env.IMAGE_REPO }}:latest
 
-      # Instalar yq para editar YAML
+      - name: Tag & Push semver (solo si hay tag vX.Y.Z)
+        if: ${{ env.TAG_SEMVER != '' }}
+        run: |
+          docker pull "${IMAGE_REPO}:${TAG_SHA}"
+          docker tag  "${IMAGE_REPO}:${TAG_SHA}" "${IMAGE_REPO}:${TAG_SEMVER}"
+          docker push "${IMAGE_REPO}:${TAG_SEMVER}"
+
       - name: Install yq
         run: |
           sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/v4.44.3/yq_linux_amd64
           sudo chmod +x /usr/local/bin/yq
           yq --version
 
-      # ACTUALIZA tu manifest para usar el tag inmutable recién publicado
-      # Ajustá la ruta si tu archivo no está en la raíz
-      - name: Bump image in manifest
+      # Actualiza SOLO el Deployment al tag inmutable (SHA)
+      - name: Bump image in manifest (Deployment only)
         env:
-          MANIFEST: Infra/k8s/manifests/coordinador.yaml   # <— RUTA CORRECTA
-          CONTAINER_NAME: coordinador
-          IMAGE_REPO: docker.io/***/coordinator
+          MANIFEST: Infra/k8s/manifests/coordinador.yaml
+          CONTAINER_NAME: coordinador          # nombre del contenedor dentro del Deployment
         run: |
-          yq -i '(.spec.template.spec.containers[] | select(.name == env(CONTAINER_NAME)).image) = (env(IMAGE_REPO) + ":" + env(TAG))' "$MANIFEST"
+          yq -i '
+            (. | select(.kind=="Deployment" and .metadata.name=="coordinator")
+               | .spec.template.spec.containers[]
+               | select(.name==env(CONTAINER_NAME)).image
+            ) = (env(IMAGE_REPO) + ":" + env(TAG_SHA))
+          ' "$MANIFEST"
           echo "Preview post-change:"
-          grep -nE "image:|name:" "$MANIFEST" || true
+          yq '. | select(.kind=="Deployment" and .metadata.name=="coordinator")
+              | .spec.template.spec.containers[] | {name, image}' "$MANIFEST"
 
       - name: Commit & Push manifest change
         env:
-          MANIFEST: Infra/k8s/manifests/coordinador.yaml   # <— misma ruta
+          MANIFEST: Infra/k8s/manifests/coordinador.yaml
         run: |
           git config user.name  "ci-bot"
           git config user.email "ci-bot@users.noreply.github.com"
@@ -68,8 +90,5 @@ jobs:
             echo "No changes to commit."
             exit 0
           fi
-          git commit -m "chore: bump coordinator -> $IMAGE_REPO:$TAG"
+          git commit -m "chore: bump coordinator -> $IMAGE_REPO:$TAG_SHA"
           git push
-
-
-
