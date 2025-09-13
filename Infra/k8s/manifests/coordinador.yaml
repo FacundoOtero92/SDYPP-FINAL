@@ -25,7 +25,7 @@ spec:
       containers:
         - name: coordinador
           image: docker.io/facundootero/coordinator:latest
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 5000
           env:
