@@ -24,7 +24,7 @@ spec:
       #   - name: dockerhub-cred
       containers:
         - name: coordinador
-          image: docker.io/***/coordinator:e1cd50e4ab2a22781e4066d9fb2270aff4d72407
+          image: docker.io/facundootero/coordinator:${GITHUB_SHA}
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
@@ -55,6 +55,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: coordinador-integrador
+  namespace: integrador  
 spec:
   type: LoadBalancer
   selector:
