@@ -24,7 +24,7 @@ spec:
       #   - name: dockerhub-cred
       containers:
         - name: coordinador
-          image: docker.io/facundootero/coordinator:${GITHUB_SHA}
+          image: docker.io/facundootero/coordinator:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5000
