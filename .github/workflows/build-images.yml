@@ -7,7 +7,7 @@ on:
       - "apps/**"
       - ".github/workflows/build-images.yml"
     tags:
-      - "v*"          # también corre para tags vX.Y.Z
+      - "v*"           # también corre para tags vX.Y.Z
   workflow_dispatch: {}
 
 jobs:

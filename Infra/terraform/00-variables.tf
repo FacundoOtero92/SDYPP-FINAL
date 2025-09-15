@@ -140,7 +140,7 @@ variable "startup_worker_cpu" {
 # ---- Imagen Docker en Docker Hub (pública) ----
 variable "worker_image" {
   type    = string
-  # ej: "docker.io/grupo4sdypp2024/tp-integrador-cpu-worker:1.0.3"
+  default = "docker.io/facundootero/worker-cpu:latest"
 }
 
 # ---- ENV que tu worker necesita (ajustalas a tu script) ----
