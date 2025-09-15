@@ -155,7 +155,7 @@ variable "worker_env" {
     COORDINATOR_PORT  = "5000"
     KEEPALIVE_HOST    = "10.0.0.30"
     KEEPALIVE_PORT    = "5001"
-    ES_WORKER_POOL    = "1"                 # "1" o "0" como string
+    ES_WORKER_POOL    = "1"                  # "1" o "0" como string
   }
 }
 variable "pool_size"    { type = number default = 1 }   
