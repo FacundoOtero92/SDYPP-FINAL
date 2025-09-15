@@ -1,15 +1,24 @@
 # Render del startup script con variables
+# Render del startup script con variables
 locals {
-  startup_script = templatefile("${path.module}/startup.sh.tftpl", {
+  startup_script_raw = templatefile("${path.module}/startup.sh.tftpl", {
     worker_env   = var.worker_env
     worker_image = var.worker_image
   })
+
+  # Normaliza EOL a LF (evita /bin/bash^M)
+  startup_script = replace(local.startup_script_raw, "\r\n", "\n")
 }
+
 
 # Plantilla de instancia (UN template; NO uses count acá)
 resource "google_compute_instance_template" "worker_cpu_tpl" {
   name_prefix  = "worker-cpu-"
   machine_type = var.machine_type
+
+  lifecycle {
+    create_before_destroy = true
+  }
 
   disk {
     boot         = true
