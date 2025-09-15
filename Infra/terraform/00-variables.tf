@@ -46,7 +46,7 @@ variable "imagen" {
 # }
 variable "metadata_startup_script" {
   type    = string
-  default = "${path.module}/worker_cpu.sh"
+  default = "/Infra/terraform/startup.sh.tftpl"
 }
 #####Balancer    ####
 
@@ -158,4 +158,6 @@ variable "worker_env" {
     ES_WORKER_POOL    = "1"                  # "1" o "0" como string
   }
 }
-variable "pool_size"    { type = number default = 1 }   
+variable "pool_size"    {
+   type = number 
+   default = 1 }   
