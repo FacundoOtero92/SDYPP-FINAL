@@ -6,7 +6,7 @@ import requests
 import time
 import os
 
-# hostRabbit = '104.196.215.66'
+ # hostRabbit = '104.196.215.66'
 hostRabbit = os.getenv("RABBITMQ_HOST", "rabbitmq")
 queueNameTx = 'QueueTransactions'
 exchangeBlock = 'ExchangeBlock'
