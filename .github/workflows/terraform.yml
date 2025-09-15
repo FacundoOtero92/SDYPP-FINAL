@@ -9,7 +9,7 @@ jobs:
   tf:
     runs-on: ubuntu-latest
     permissions: { id-token: write, contents: read  }
-    defaults: { run: { working-directory: infra/terraform } }
+    defaults: { run: { working-directory: infra/terraform }  }
     steps:
       - uses: actions/checkout@v4
       - uses: google-github-actions/auth@v2
