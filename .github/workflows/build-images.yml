@@ -21,7 +21,7 @@ jobs:
             dockerfile: apps/coordinator/Dockerfile
           - name: worker-cpu
             context: apps/worker-cpu
-            dockerfile: apps/worker-cpu/Dockerfile.dockerfile
+            dockerfile: apps/worker-cpu/Dockerfile
 
     steps:
       - uses: actions/checkout@v4
