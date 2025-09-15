@@ -77,11 +77,11 @@ resource "google_compute_instance_template" "worker_cpu_tpl" {
     startup-script = local.startup_script
   }
 
-  scheduling {
-    preemptible        = var.use_spot
-    provisioning_model = var.use_spot ? "SPOT" : "STANDARD"
-    automatic_restart  = var.use_spot ? false : true
-  }
+ scheduling {
+  preemptible        = true
+  provisioning_model = "SPOT"
+  automatic_restart  = false
+}
 
   service_account {
     scopes = ["https://www.googleapis.com/auth/cloud-platform"]
