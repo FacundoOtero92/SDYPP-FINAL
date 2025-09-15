@@ -158,5 +158,4 @@ variable "worker_env" {
     ES_WORKER_POOL    = "1"                 # "1" o "0" como string
   }
 }
-variable "pool_size"    { type = 1  default = 0 }   
-#variable "pool_size"    { type = number  default = 0 }   
+variable "pool_size"    { type = number default = 1 }   
