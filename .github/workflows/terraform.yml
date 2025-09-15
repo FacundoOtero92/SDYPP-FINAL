@@ -41,8 +41,12 @@ jobs:
         run: terraform plan -var="project_id=${{ secrets.GCP_PROJECT_ID }}" -var="region=us-east1" -var="zone=us-east1-c"
 
       - if: github.event_name != 'pull_request'
-        run: terraform apply -auto-approve \
-             -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
-             -var="region=us-east1" -var="zone=us-east1-c" \
-             -var="pool_size=2" \
-             -var="worker_image=docker.io/TUUSER/worker-cpu:latest"
+        run: |
+              set -euo pipefail
+              terraform apply -input=false -auto-approve \
+                -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
+                -var="region=us-east1" \
+                -var="zone=us-east1-c" \
+                -var="pool_size=2" \
+                -var="worker_image=docker.io/facundootero/worker-cpu:latest"
+                  
