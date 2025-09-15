@@ -2,24 +2,23 @@ name: Terraform (GKE infra)
 
 on:
   push:
-    branches:
-      - main
-      - develop
-      - 'feature/**'              # opcional
+    branches: [ main ]
     paths:
-      - 'infra/terraform/**'
-      - '.github/workflows/terraform.yml'   # <-- poné el nombre real del archivo
+      - 'Infra/terraform/**'                 # ← MAYÚSCULA
+      - '.github/workflows/terraform.yml'    # ← nombre real del archivo
   pull_request:
     paths:
-      - 'infra/terraform/**'
+      - 'Infra/terraform/**'
       - '.github/workflows/terraform.yml'
-  workflow_dispatch: {}           # <-- botón "Run workflow"
+  workflow_dispatch: {}                      # botón "Run workflow"
 
 jobs:
   tf:
     runs-on: ubuntu-latest
     permissions: { id-token: write, contents: read }
-    defaults: { run: { working-directory: infra/terraform } }
+    defaults:
+      run:
+        working-directory: Infra/terraform   # ← MAYÚSCULA
     steps:
       - uses: actions/checkout@v4
       - uses: google-github-actions/auth@v2
@@ -27,9 +26,23 @@ jobs:
           workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SA_EMAIL }}
       - uses: hashicorp/setup-terraform@v3
+
+      # Debug útil si vuelve a fallar
+      - name: show tree
+        run: |
+          pwd
+          ls -la
+          ls -la ../..
+
       - run: terraform init
       - run: terraform validate
+
       - if: github.event_name == 'pull_request'
         run: terraform plan -var="project_id=${{ secrets.GCP_PROJECT_ID }}" -var="region=us-east1" -var="zone=us-east1-c"
+
       - if: github.event_name != 'pull_request'
-        run: terraform apply -auto-approve -var="project_id=${{ secrets.GCP_PROJECT_ID }}" -var="region=us-east1" -var="zone=us-east1-c" -var="pool_size=2" -var="worker_image=docker.io/TUUSER/worker-cpu:latest"
+        run: terraform apply -auto-approve \
+             -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
+             -var="region=us-east1" -var="zone=us-east1-c" \
+             -var="pool_size=2" \
+             -var="worker_image=docker.io/TUUSER/worker-cpu:latest"
