@@ -8,7 +8,7 @@ on:
 jobs:
   tf:
     runs-on: ubuntu-latest
-    permissions: { id-token: write, contents: read }
+    permissions: { id-token: write, contents: read  }
     defaults: { run: { working-directory: infra/terraform } }
     steps:
       - uses: actions/checkout@v4
