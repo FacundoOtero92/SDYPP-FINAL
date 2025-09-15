@@ -42,7 +42,7 @@ resource "google_compute_instance_group_manager" "worker_cpu_mig" {
     instance_template = google_compute_instance_template.worker_cpu_tpl.self_link
   }
 
-   target_size = var.pool_size   # tamaño del pool (lo cambiás con terraform apply)
+   target_size = var.pool_size   #   tamaño del pool (lo cambiás con terraform apply)
 
   update_policy {
     minimal_action          = "REPLACE"
