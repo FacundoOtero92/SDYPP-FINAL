@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euxo pipefail
 
-
+# 1) Instalar Docker si no está
 if ! command -v docker >/dev/null 2>&1; then
   apt-get update
   apt-get install -y ca-certificates curl gnupg
@@ -13,18 +13,17 @@ https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_C
   apt-get update && apt-get install -y docker-ce docker-ce-cli containerd.io
 fi
 
-
+# 2) .env del worker
 install -d -m 0755 /opt/worker-cpu
 cat > /opt/worker-cpu/.env <<'EOF'
 %{ for k, v in worker_env ~}
 ${k}=${v}
 %{ endfor ~}
-# Importante: si querés un var de shell en runtime, escapalo con $$
 WORKER_ID=$${HOSTNAME}
 EOF
 
-
-IMAGE="%{ worker_image }"
+# 3) Ejecutar contenedor
+IMAGE="${worker_image}"
 docker rm -f worker-cpu || true
 docker run -d --name worker-cpu \
   --restart unless-stopped \
@@ -32,4 +31,5 @@ docker run -d --name worker-cpu \
   "$IMAGE" \
   > /var/log/worker-cpu.container 2>&1
 
+# 4) Logs a archivo
 (docker logs -f worker-cpu) >> /var/log/worker-cpu.log 2>&1 &

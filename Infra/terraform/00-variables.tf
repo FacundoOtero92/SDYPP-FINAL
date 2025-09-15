@@ -150,15 +150,15 @@ variable "worker_env" {
     RABBITMQ_USER     = "guest"
     RABBITMQ_PASSWORD = "guest"
     RABBITMQ_HOST     = "10.0.0.15"
-    RABBITMQ_PORT     = "5672"              # OJO: tu código debe castear a int si hace falta
+    RABBITMQ_PORT     = "5672" # OJO: tu código debe castear a int si hace falta
     COORDINATOR_HOST  = "10.0.0.20"
     COORDINATOR_PORT  = "5000"
     KEEPALIVE_HOST    = "10.0.0.30"
     KEEPALIVE_PORT    = "5001"
-    ES_WORKER_POOL    = "1"                  # "1" o "0" como string
+    ES_WORKER_POOL    = "1" # "1" o "0" como string
   }
 }
-variable "pool_size"    {
-   type = number 
-   default = 1 
-   }   
+variable "pool_size" {
+  type    = number
+  default = 1
+}

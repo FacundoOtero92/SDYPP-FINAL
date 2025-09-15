@@ -35,6 +35,6 @@ resource "google_container_node_pool" "cpu_workers" {
 
     service_account = google_service_account.kubernetes.email
     oauth_scopes    = ["https://www.googleapis.com/auth/cloud-platform"]
-    metadata = { disable-legacy-endpoints = "true" }
+    metadata        = { disable-legacy-endpoints = "true" }
   }
 }
