@@ -1,15 +1,25 @@
 name: Terraform (GKE infra)
+
 on:
-  pull_request: { paths: ["infra/terraform/**"] }
   push:
-    branches: [ main ]
-    paths: ["infra/terraform/**"]
+    branches:
+      - main
+      - develop
+      - 'feature/**'              # opcional
+    paths:
+      - 'infra/terraform/**'
+      - '.github/workflows/terraform.yml'   # <-- poné el nombre real del archivo
+  pull_request:
+    paths:
+      - 'infra/terraform/**'
+      - '.github/workflows/terraform.yml'
+  workflow_dispatch: {}           # <-- botón "Run workflow"
 
 jobs:
   tf:
     runs-on: ubuntu-latest
-    permissions: { id-token: write, contents: read  }
-    defaults: { run: { working-directory: infra/terraform }  }
+    permissions: { id-token: write, contents: read }
+    defaults: { run: { working-directory: infra/terraform } }
     steps:
       - uses: actions/checkout@v4
       - uses: google-github-actions/auth@v2
@@ -21,5 +31,5 @@ jobs:
       - run: terraform validate
       - if: github.event_name == 'pull_request'
         run: terraform plan -var="project_id=${{ secrets.GCP_PROJECT_ID }}" -var="region=us-east1" -var="zone=us-east1-c"
-      - if: github.event_name == 'push'
-        run: terraform apply -auto-approve -var="project_id=${{ secrets.GCP_PROJECT_ID }}" -var="region=us-east1" -var="zone=us-east1-c"
+      - if: github.event_name != 'pull_request'
+        run: terraform apply -auto-approve -var="project_id=${{ secrets.GCP_PROJECT_ID }}" -var="region=us-east1" -var="zone=us-east1-c" -var="pool_size=2" -var="worker_image=docker.io/TUUSER/worker-cpu:latest"
