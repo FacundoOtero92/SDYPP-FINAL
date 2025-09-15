@@ -2,42 +2,53 @@ name: Build & Push (Docker Hub)
 
 on:
   push:
+    branches: [ main ]
     paths:
       - "apps/**"
       - ".github/workflows/build-images.yml"
     tags:
-      - "v*"              # también corre cuando empujás tags vX.Y.Z
+      - "v*"          # también corre para tags vX.Y.Z
   workflow_dispatch: {}
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: coordinator
+            context: apps/coordinator
+            dockerfile: apps/coordinator/Dockerfile
+          - name: worker-cpu
+            context: apps/worker-cpu
+            dockerfile: apps/worker-cpu/Dockerfile.dockerfile
 
     steps:
       - uses: actions/checkout@v4
 
-      # Login a Docker Hub
       - uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      # Build y push con dos tags: SHA y latest
-      - name: Build & Push (SHA + latest)
+      - name: Build & Push (${{ matrix.name }})
         run: |
           set -euo pipefail
-          IMAGE="docker.io/${{ secrets.DOCKER_USERNAME }}/coordinator"
-          docker build -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" apps/coordinator
+          IMAGE="docker.io/${{ secrets.DOCKER_USERNAME }}/${{ matrix.name }}"
+          docker build \
+            -f "${{ matrix.dockerfile }}" \
+            -t "$IMAGE:${{ github.sha }}" \
+            -t "$IMAGE:latest" \
+            "${{ matrix.context }}"
           docker push "$IMAGE:${{ github.sha }}"
           docker push "$IMAGE:latest"
 
-      # Si el push fue por un tag vX.Y.Z, publica también :X.Y.Z
-      - name: Tag & Push SemVer (si aplica)
+      - name: Tag & Push SemVer (${{ matrix.name }})  # sólo si el push vino por tag v*
         if: ${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v') }}
         run: |
           set -euo pipefail
-          IMAGE="docker.io/${{ secrets.DOCKER_USERNAME }}/coordinator"
-          SEMVER="${GITHUB_REF_NAME#v}"   # quita el prefijo 'v'
-          docker pull "$IMAGE:${GITHUB_SHA}"        # el build anterior por SHA
+          IMAGE="docker.io/${{ secrets.DOCKER_USERNAME }}/${{ matrix.name }}"
+          SEMVER="${GITHUB_REF_NAME#v}"
+          docker pull "$IMAGE:${GITHUB_SHA}"
           docker tag  "$IMAGE:${GITHUB_SHA}" "$IMAGE:${SEMVER}"
           docker push "$IMAGE:${SEMVER}"
