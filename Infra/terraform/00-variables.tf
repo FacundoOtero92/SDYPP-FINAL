@@ -162,3 +162,7 @@ variable "pool_size" {
   type    = number
   default = 1
 }
+variable "use_spot" {
+  type    = bool
+  default = true
+}
