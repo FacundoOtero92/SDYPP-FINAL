@@ -14,7 +14,7 @@ resource "google_compute_instance_template" "worker_cpu_tpl" {
   disk {
     boot         = true
     auto_delete  = true
-    source_image = var.boot_image
+    source_image = var.imagen
     disk_size_gb = 20
   }
 
