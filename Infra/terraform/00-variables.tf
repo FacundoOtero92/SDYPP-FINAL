@@ -160,4 +160,5 @@ variable "worker_env" {
 }
 variable "pool_size"    {
    type = number 
-   default = 1 }   
+   default = 1 
+   }   
