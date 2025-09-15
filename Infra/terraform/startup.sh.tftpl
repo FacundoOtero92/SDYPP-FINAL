@@ -1,0 +1,35 @@
+#!/bin/bash
+set -euxo pipefail
+
+
+if ! command -v docker >/dev/null 2>&1; then
+  apt-get update
+  apt-get install -y ca-certificates curl gnupg
+  install -m 0755 -d /etc/apt/keyrings
+  curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
+https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+  > /etc/apt/sources.list.d/docker.list
+  apt-get update && apt-get install -y docker-ce docker-ce-cli containerd.io
+fi
+
+
+install -d -m 0755 /opt/worker-cpu
+cat > /opt/worker-cpu/.env <<'EOF'
+%{ for k, v in worker_env ~}
+${k}=${v}
+%{ endfor ~}
+# Importante: si querés un var de shell en runtime, escapalo con $$
+WORKER_ID=$${HOSTNAME}
+EOF
+
+
+IMAGE="%{ worker_image }"
+docker rm -f worker-cpu || true
+docker run -d --name worker-cpu \
+  --restart unless-stopped \
+  --env-file /opt/worker-cpu/.env \
+  "$IMAGE" \
+  > /var/log/worker-cpu.container 2>&1
+
+(docker logs -f worker-cpu) >> /var/log/worker-cpu.log 2>&1 &
