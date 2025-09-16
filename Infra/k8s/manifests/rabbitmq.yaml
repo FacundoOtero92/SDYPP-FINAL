@@ -17,6 +17,7 @@ metadata:
     cloud.google.com/load-balancer-type: "Internal"  # ILB
 spec:
   type: LoadBalancer
+  loadBalancerIP: 10.142.0.42  
   selector:
     app: rabbitmq
   ports:
