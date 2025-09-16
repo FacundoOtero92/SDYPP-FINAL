@@ -11,7 +11,7 @@ QUEUE = os.getenv("RABBITMQ_QUEUE") or os.getenv("QUEUE_NAME", "pool.tasks")
 
 COORDINATOR_URL = os.getenv(
     "COORDINATOR_URL",
-    "http://coordinador-integrador:5000/solved_task"
+    "104.196.19.165:5000/solved_task"
 )
 
 def pika_params():
