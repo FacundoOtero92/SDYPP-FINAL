@@ -39,32 +39,59 @@ def on_message_received(ch, method, properties, body):
     data = json.loads(body)
     print(f"Message {data} received", flush=True)
 
+    # --- Normalizar esquema (soporta 'block' y plano) ---
+    if 'block' in data:
+        blk = data['block']
+        block_id = blk['blockId']
+        base = blk['baseStringChain']
+        content = blk['blockchainContent']
+        prefijo = blk['prefijo']
+        num_max = blk.get('numMaxRandom')
+        # rango opcional en el envelope
+        r = data.get('range', {})
+        num_min = r.get('min', 0)
+        if num_max is None:
+            num_max = r.get('max', 99999999)
+    else:
+        # esquema antiguo/plano
+        blk = data
+        block_id = data['blockId']
+        base = data['baseStringChain']
+        content = data['blockchainContent']
+        prefijo = data['prefijo']
+        num_min = 0
+        num_max = data.get('numMaxRandom', 99999999)
+
     encontrado = False
     intentos = 0
     startTime = time.time()
-
     print("## Iniciando Minero ##", flush=True)
 
-    while not encontrado:
-        intentos += 1
-        randomNumber = str(random.randint(0, data['numMaxRandom']))
-        hashCalculado = calculateHash(randomNumber + data['baseStringChain'] + data['blockchainContent'])
-        if hashCalculado.startswith(data['prefijo']):
-            encontrado = True
-            processingTime = time.time() - startTime
+    try:
+        while not encontrado:
+            intentos += 1
+            randomNumber = str(random.randint(int(num_min), int(num_max)))
+            hashCalculado = calculateHash(randomNumber + base + content)
+            if hashCalculado.startswith(prefijo):
+                encontrado = True
+                processingTime = time.time() - startTime
 
-            dataResult = {
-                'blockId': data['blockId'],
-                'processingTime': processingTime,
-                'hash': hashCalculado,
-                'result': randomNumber
-            }
+                dataResult = {
+                    'blockId': block_id,
+                    'processingTime': processingTime,
+                    'hash': hashCalculado,
+                    'result': randomNumber
+                }
 
-            print(f"[x] Prefijo {data['prefijo']} OK - HASH {hashCalculado}", flush=True)
-            sendResult(dataResult)
+                print(f"[x] Prefijo {prefijo} OK - HASH {hashCalculado}", flush=True)
+                sendResult(dataResult)
 
-    ch.basic_ack(delivery_tag=method.delivery_tag)
-    print(f"ACK blockId {data['blockId']}", flush=True)
+        ch.basic_ack(delivery_tag=method.delivery_tag)
+        print(f"ACK blockId {block_id}", flush=True)
+    except Exception as e:
+        # si fallara algo, no ACKeamos: requeue tras reconexión
+        print("Miner error:", repr(e), flush=True)
+        raise
 
 def main():
     while True:
