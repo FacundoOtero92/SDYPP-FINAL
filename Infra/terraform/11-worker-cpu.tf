@@ -16,6 +16,11 @@ resource "google_compute_instance_template" "worker_cpu_tpl" {
   name_prefix  = "worker-cpu-"
   machine_type = var.machine_type
 
+
+  service_account {
+    email  = google_service_account.kubernetes.email
+    scopes = ["https://www.googleapis.com/auth/cloud-platform"]
+  }
   lifecycle {
     create_before_destroy = true
   }
@@ -44,9 +49,7 @@ resource "google_compute_instance_template" "worker_cpu_tpl" {
     automatic_restart  = var.use_spot ? false : true
   }
 
-  service_account {
-    scopes = ["https://www.googleapis.com/auth/cloud-platform"]
-  }
+
 }
 
 # Managed Instance Group = el pool

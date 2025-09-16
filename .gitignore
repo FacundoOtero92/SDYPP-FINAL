@@ -3,3 +3,8 @@ Infra/terraform/credentials.json
 
 Infra/terraform/credentials.json
 *.json
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
