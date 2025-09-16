@@ -3,7 +3,10 @@ kind: Service
 metadata:
   name: rabbitmq
   namespace: integrador
+  annotations:
+    cloud.google.com/load-balancer-type: "Internal"  # ILB (IP privada)
 spec:
+  type: LoadBalancer
   selector:
     app: rabbitmq
   ports:
@@ -17,6 +20,7 @@ metadata:
   name: rabbitmq-ui
   namespace: integrador
 spec:
+  type: ClusterIP
   selector:
     app: rabbitmq
   ports:
