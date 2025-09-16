@@ -51,12 +51,3 @@ jobs:
                 -var="pool_size=2" \
                 -var="worker_image=docker.io/facundootero/worker-cpu:latest"
                   
-
-    
-      - name: Resolver selfLinks de VPC/Subred
-        run: |
-          echo "TF_VAR_network_self_link=$(gcloud compute networks describe default --format='value(selfLink)')" >> $GITHUB_ENV
-          echo "TF_VAR_subnet_self_link=$(gcloud compute networks subnets describe default --region us-central1 --format='value(selfLink)')" >> $GITHUB_ENV
-
-      - name: Terraform Apply
-        run: terraform apply -auto-approve            

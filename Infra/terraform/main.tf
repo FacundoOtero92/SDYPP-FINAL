@@ -1,19 +1,47 @@
+terraform {
+  required_version = ">= 1.5.0"
+  required_providers {
+    google = {
+      source  = "hashicorp/google"
+      version = "~> 5.30"
+    }
+  }
+}
 
+provider "google" {
+  project = var.project_id
+  region  = var.region
+}
 
+############################
+# Variables mínimas
+############################
 
-
-variable "network_self_link" {
-  description = "Self link de la VPC donde viven la(s) VM(s) y el GKE"
+variable "project_id" {
+  description = "ID del proyecto GCP"
   type        = string
 }
 
-variable "subnet_self_link" {
-  description = "Self link de la subred donde exponen los ILB"
+variable "region" {
+  description = "Región (ej. us-central1)"
   type        = string
+}
+
+# En vez de self_link pedimos nombres y resolvemos con data sources
+variable "vpc_name" {
+  description = "Nombre de la VPC"
+  type        = string
+  default     = "default"
+}
+
+variable "subnet_name" {
+  description = "Nombre de la subred en la región indicada"
+  type        = string
+  default     = "default"
 }
 
 variable "dns_domain" {
-  description = "Dominio DNS privado para servicios (debe terminar en punto)"
+  description = "Dominio DNS privado (debe terminar en punto)"
   type        = string
   default     = "svc.local."
 }
@@ -25,21 +53,22 @@ variable "dns_zone_name" {
 }
 
 variable "create_dns_zone" {
-  description = "Crear la zona privada (true) o reutilizar una existente (false)"
+  description = "Crear (true) o reutilizar (false) la zona privada"
   type        = bool
   default     = true
 }
 
-variable "coordinator_ilb_ip" {
-  description = "IP interna estática para el Service coordinator (ILB)"
-  type        = string
-  default     = "10.142.0.50"
+############################
+# Data sources: resuelven self_links a partir de nombres
+############################
+
+data "google_compute_network" "vpc" {
+  name = var.vpc_name
 }
 
-variable "rabbitmq_ilb_ip" {
-  description = "IP interna estática para el Service rabbitmq (ILB)"
-  type        = string
-  default     = "10.142.0.42"
+data "google_compute_subnetwork" "subnet" {
+  name   = var.subnet_name
+  region = var.region
 }
 
 ############################
@@ -50,19 +79,17 @@ resource "google_compute_address" "coord_ilb" {
   name         = "coord-ilb"
   region       = var.region
   address_type = "INTERNAL"
-  subnetwork   = var.subnet_self_link
-
+  subnetwork   = data.google_compute_subnetwork.subnet.self_link
+  # address    = "X.X.X.X"  # opcional: si lo omitís, GCP asigna una libre válida
 }
 
 resource "google_compute_address" "rabbit_ilb" {
   name         = "rabbit-ilb"
   region       = var.region
   address_type = "INTERNAL"
-  subnetwork   = var.subnet_self_link
-
+  subnetwork   = data.google_compute_subnetwork.subnet.self_link
+  # address    = "X.X.X.X"
 }
-
-
 
 ############################
 # DNS privado (Cloud DNS)
@@ -76,7 +103,7 @@ resource "google_dns_managed_zone" "svc" {
 
   private_visibility_config {
     networks {
-      network_url = var.network_self_link
+      network_url = data.google_compute_network.vpc.self_link
     }
   }
 }
@@ -85,7 +112,6 @@ locals {
   zone_name = var.create_dns_zone ? google_dns_managed_zone.svc[0].name : var.dns_zone_name
 }
 
-# A-record: coordinator.svc.local.
 resource "google_dns_record_set" "coordinator_a" {
   name         = "coordinator.${var.dns_domain}"
   type         = "A"
@@ -94,7 +120,6 @@ resource "google_dns_record_set" "coordinator_a" {
   rrdatas      = [google_compute_address.coord_ilb.address]
 }
 
-# A-record: rabbitmq.svc.local.
 resource "google_dns_record_set" "rabbitmq_a" {
   name         = "rabbitmq.${var.dns_domain}"
   type         = "A"
@@ -108,12 +133,12 @@ resource "google_dns_record_set" "rabbitmq_a" {
 ############################
 
 output "coordinator_ilb_ip" {
-  description = "IP interna estática del coordinator (ILB)"
+  description = "IP interna del coordinator (ILB)"
   value       = google_compute_address.coord_ilb.address
 }
 
 output "rabbitmq_ilb_ip" {
-  description = "IP interna estática de RabbitMQ (ILB)"
+  description = "IP interna de RabbitMQ (ILB)"
   value       = google_compute_address.rabbit_ilb.address
 }
 
