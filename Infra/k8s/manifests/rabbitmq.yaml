@@ -45,6 +45,11 @@ metadata:
   namespace: integrador
   labels: { app: rabbitmq }
 spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0
+      maxUnavailable: 1
   replicas: 1
   selector:
     matchLabels: { app: rabbitmq }
@@ -68,4 +73,4 @@ spec:
               subPath: rabbitmq.conf
           resources:
             requests: { cpu: "50m",  memory: "128Mi" }
-            limits:   {            memory: "256Mi" }
+            limits:   {            memory: "512Mi" }

@@ -1,57 +1,52 @@
-import pika
-import json
-import hashlib
-import random
-import requests
-import time
-import os
+import os, time, json, hashlib, random, requests, pika
 
- # hostRabbit = '104.196.215.66'
-hostRabbit = os.getenv("RABBITMQ_HOST", "rabbitmq")
-queueNameTx = 'QueueTransactions'
-exchangeBlock = 'ExchangeBlock'
+# --- AMQP config (tomado por env cuando esté presente)
+HOST  = os.getenv("RABBITMQ_HOST", "rabbitmq")
+PORT  = int(os.getenv("RABBITMQ_PORT", "5672"))
+USER  = os.getenv("RABBITMQ_USER", "guest")
+PWD   = os.getenv("RABBITMQ_PASSWORD", "guest")
+VHOST = os.getenv("RABBITMQ_VHOST", "/")
+QUEUE = os.getenv("QUEUE_NAME", "pool.tasks")  # <- la cola que realmente vas a consumir
+
+COORDINATOR_URL = os.getenv(
+    "COORDINATOR_URL",
+    "http://coordinador-integrador:5000/solved_task"
+)
+
+def pika_params():
+    return pika.ConnectionParameters(
+        host=HOST, port=PORT, virtual_host=VHOST,
+        credentials=pika.PlainCredentials(USER, PWD),
+        heartbeat=30, blocked_connection_timeout=300,
+        connection_attempts=50, retry_delay=5, socket_timeout=10,
+        client_properties={"connection_name": os.getenv("WORKER_ID","worker")}
+    )
 
 def calculateHash(data):
-    hash_md5 = hashlib.md5()
-    hash_md5.update(data.encode('utf-8'))
-    return hash_md5.hexdigest()
+    h = hashlib.md5()
+    h.update(data.encode("utf-8"))
+    return h.hexdigest()
 
 def sendResult(data):
-    # url = "http://localhost:5000/solved_task"
-    # url = "http://35.227.79.99:5000/solved_task"
-    coordinator_url = os.getenv("COORDINATOR_URL", "http://coordinador-integrador:5000/solved_task") 
-
     try:
-        response = requests.post(coordinator_url, json=data)
-        print("Post response:", response.text)
-    except requests.exceptions.RequestException as e:
-        print("Failed to send POST request:", e)
-
-#   block = {
-#                "blockId": blockId,
- #               "transactions": listaTransactions,
-  #              "prefijo": '000',
-   #             "baseStringChain": "A3F8",
-    #            "blockchainContent": "contenido",
-     #           "numMaxRandom": maxRandom 
-      #      }
-
+        r = requests.post(COORDINATOR_URL, json=data, timeout=10)
+        print("POST ->", COORDINATOR_URL, r.status_code, flush=True)
+    except Exception as e:
+        print("POST failed:", repr(e), flush=True)
 
 def on_message_received(ch, method, properties, body):
     data = json.loads(body)
-    print(f"Message {data} received")
-    print('')
+    print(f"Message {data} received", flush=True)
 
     encontrado = False
-    intentos   = 0
-    startTime  = time.time()
+    intentos = 0
+    startTime = time.time()
 
-    print("## Iniciando Minero ##")
+    print("## Iniciando Minero ##", flush=True)
 
     while not encontrado:
-        intentos = intentos + 1
+        intentos += 1
         randomNumber = str(random.randint(0, data['numMaxRandom']))
-        
         hashCalculado = calculateHash(randomNumber + data['baseStringChain'] + data['blockchainContent'])
         if hashCalculado.startswith(data['prefijo']):
             encontrado = True
@@ -61,38 +56,40 @@ def on_message_received(ch, method, properties, body):
                 'blockId': data['blockId'],
                 'processingTime': processingTime,
                 'hash': hashCalculado,
-                'result': randomNumber   
+                'result': randomNumber
             }
 
-            print(f"[x] Hash con el prefijo {data['prefijo']} encontrado")
-            print(f"[x] HASH: {hashCalculado}")
-            print('')
-            sendResult(dataResult) 
-    
+            print(f"[x] Prefijo {data['prefijo']} OK - HASH {hashCalculado}", flush=True)
+            sendResult(dataResult)
+
     ch.basic_ack(delivery_tag=method.delivery_tag)
-    print(f"Result found and posted for block ID {data['blockId']} in {processingTime:.2f} seconds in {intentos} intentos")
-    print(f"Resultado: {randomNumber}")
-    print('')
+    print(f"ACK blockId {data['blockId']}", flush=True)
 
 def main():
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host=hostRabbit,
-        port=5672,
-        credentials=pika.PlainCredentials("guest", "guest"),
-    )
-    )
-    channel = connection.channel()
-    channel.exchange_declare(exchange= exchangeBlock, exchange_type='topic', durable=True)
-    result = channel.queue_declare('', exclusive=True)
-    queue_name = result.method.queue
-    channel.queue_bind(exchange= exchangeBlock, queue=queue_name, routing_key='blocks')
-    channel.basic_consume(queue=queue_name, on_message_callback=on_message_received, auto_ack=False)
-    print('Waiting for messages. To exit press CTRL+C')
-    try:
-        channel.start_consuming()
-    except KeyboardInterrupt:
-        print("Consumption stopped by user.")
-        connection.close()
-        print("Connection closed.")
+    while True:
+        try:
+            print("AMQP: connecting to", HOST, PORT, "vhost", VHOST, "queue", QUEUE, flush=True)
+            connection = pika.BlockingConnection(pika_params())
+            channel = connection.channel()
+
+            # La cola en tu cluster es quorum:
+            channel.queue_declare(queue=QUEUE, durable=True, arguments={"x-queue-type": "quorum"})
+            channel.basic_qos(prefetch_count=50)
+
+            # Consumir DIRECTO de la cola (sin exchange/cola efímera)
+            channel.basic_consume(queue=QUEUE, on_message_callback=on_message_received, auto_ack=False)
+            print('AMQP: consuming… (CTRL+C para salir)', flush=True)
+            channel.start_consuming()
+        except KeyboardInterrupt:
+            print("Consumption stopped by user.")
+            try:
+                connection.close()
+            except Exception:
+                pass
+            break
+        except Exception as e:
+            print("AMQP error; retry in 5s:", repr(e), flush=True)
+            time.sleep(5)
 
 if __name__ == '__main__':
     main()
