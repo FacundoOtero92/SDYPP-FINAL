@@ -6,7 +6,8 @@ PORT  = int(os.getenv("RABBITMQ_PORT", "5672"))
 USER  = os.getenv("RABBITMQ_USER", "guest")
 PWD   = os.getenv("RABBITMQ_PASSWORD", "guest")
 VHOST = os.getenv("RABBITMQ_VHOST", "/")
-QUEUE = os.getenv("QUEUE_NAME", "pool.tasks")  # <- la cola que realmente vas a consumir
+# QUEUE = os.getenv("QUEUE_NAME", "pool.tasks")  # <- la cola que realmente vas a consumir
+QUEUE = os.getenv("RABBITMQ_QUEUE") or os.getenv("QUEUE_NAME", "pool.tasks")
 
 COORDINATOR_URL = os.getenv(
     "COORDINATOR_URL",
@@ -68,10 +69,13 @@ def on_message_received(ch, method, properties, body):
 def main():
     while True:
         try:
+            # print("AMQP: connecting to", HOST, PORT, "vhost", VHOST, "queue", QUEUE, flush=True)
+            # connection = pika.BlockingConnection(pika_params())
+            # channel = connection.channel()
             print("AMQP: connecting to", HOST, PORT, "vhost", VHOST, "queue", QUEUE, flush=True)
             connection = pika.BlockingConnection(pika_params())
             channel = connection.channel()
-
+            channel.exchange_declare(exchange="coordinator.inbox", exchange_type="direct", durable=True)
             # La cola en tu cluster es quorum:
             channel.queue_declare(queue=QUEUE, durable=True, arguments={"x-queue-type": "quorum"})
             channel.basic_qos(prefetch_count=50)
