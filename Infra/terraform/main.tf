@@ -1,31 +1,4 @@
-terraform {
-  required_version = ">= 1.5.0"
-  required_providers {
-    google = {
-      source  = "hashicorp/google"
-      version = "~> 5.30"
-    }
-  }
-}
 
-provider "google" {
-  project = var.project_id
-  region  = var.region
-}
-
-############################
-# Variables mínimas
-############################
-
-variable "project_id" {
-  description = "ID del proyecto GCP"
-  type        = string
-}
-
-variable "region" {
-  description = "Región (ej. us-central1)"
-  type        = string
-}
 
 # En vez de self_link pedimos nombres y resolvemos con data sources
 variable "vpc_name" {
