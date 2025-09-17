@@ -62,7 +62,7 @@ jobs:
           TF_PLUGIN_CACHE_DIR: ~/.terraform.d/plugin-cache
         run: |
           rm -f terraform.tfstate terraform.tfstate.backup || true
-          terraform init -migrate-state -force-copy -input=false -no-color
+          terraform init -reconfigure -input=false -no-color
 
       - name: Terraform imports (router, DNS, subnet)
         run: |
