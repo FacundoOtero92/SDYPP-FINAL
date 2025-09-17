@@ -25,25 +25,20 @@ jobs:
       TF_VAR_vpc_name:     default
       TF_VAR_subnet_name:  default
       TF_VAR_create_dns_zone: "false"
+      # ⬇️ mueve aquí las vars que dabas con -var
+      TF_VAR_zone:         us-east1-c
+      TF_VAR_pool_size:    "2"
+      TF_VAR_worker_image: docker.io/facundootero/worker-cpu:latest
 
     steps:
       - uses: actions/checkout@v4
-
       - uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SA_EMAIL }}
           access_token_scopes: https://www.googleapis.com/auth/cloud-platform
-
       - uses: hashicorp/setup-terraform@v3
 
-      - name: Show tree (debug)
-        run: |
-          pwd
-          ls -la
-          ls -la ../..
-
-      # ⬇️ init no interactivo: usa backend GCS y evita prompt de migración
       - name: Terraform init (usar state remoto; no migrar)
         run: |
           rm -f terraform.tfstate terraform.tfstate.backup || true
@@ -52,18 +47,10 @@ jobs:
       - name: Terraform validate
         run: terraform validate
 
-      # PLAN en PR
       - if: github.event_name == 'pull_request'
         name: Terraform plan
-        run: terraform plan -input=false -no-color \
-              -var="zone=us-east1-c" \
-              -var="pool_size=2" \
-              -var="worker_image=docker.io/facundootero/worker-cpu:latest"
+        run: terraform plan -input=false -no-color
 
-      # APPLY en push a main
       - if: github.event_name != 'pull_request'
         name: Terraform apply
-        run: terraform apply -input=false -auto-approve -no-color \
-              -var="zone=us-east1-c" \
-              -var="pool_size=2" \
-              -var="worker_image=docker.io/facundootero/worker-cpu:latest"
+        run: terraform apply -input=false -auto-approve -no-color
