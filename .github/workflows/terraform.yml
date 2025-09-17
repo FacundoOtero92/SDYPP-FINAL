@@ -82,6 +82,17 @@ jobs:
             terraform import -input=false google_compute_subnetwork.private \
               projects/${{ secrets.GCP_PROJECT_ID }}/regions/us-east1/subnetworks/private || true
 
+       
+              terraform state show google_compute_address.nat >/dev/null 2>&1 || \
+                terraform import -input=false google_compute_address.nat \
+                  projects/${{ secrets.GCP_PROJECT_ID }}/regions/us-east1/addresses/nat || true
+
+            # NAT
+            terraform state show google_compute_router_nat.nat >/dev/null 2>&1 || \
+              terraform import -input=false google_compute_router_nat.nat \
+                projects/${{ secrets.GCP_PROJECT_ID }}/regions/us-east1/routers/router/nats/nat || true
+
+
       - name: Terraform validate
         run: terraform validate
 
