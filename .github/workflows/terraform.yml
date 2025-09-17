@@ -4,13 +4,13 @@ on:
   push:
     branches: [ main ]
     paths:
-      - 'Infra/terraform/**'                 # ← MAYÚSCULA
-      - '.github/workflows/terraform.yml'    # ← nombre real del archivo
+      - 'Infra/terraform/**'
+      - '.github/workflows/terraform.yml'
   pull_request:
     paths:
       - 'Infra/terraform/**'
       - '.github/workflows/terraform.yml'
-  workflow_dispatch: {}                      # botón "Run workflow"
+  workflow_dispatch: {}
 
 jobs:
   tf:
@@ -18,36 +18,52 @@ jobs:
     permissions: { id-token: write, contents: read }
     defaults:
       run:
-        working-directory: Infra/terraform   # ← MAYÚSCULA
+        working-directory: Infra/terraform
+    env:
+      # Vars que usa tu main.tf
+      TF_VAR_project_id:   ${{ secrets.GCP_PROJECT_ID }}
+      TF_VAR_region:       us-east1          # <- tu región
+      # Si migraste a data sources por nombre (recomendado)
+      TF_VAR_vpc_name:     default           # cámbialo si tu VPC no es "default"
+      TF_VAR_subnet_name:  default           # cámbialo si tu subred no es "default"
+      # Evita 403 creando la zona si ya existe (o dale roles/dns.admin al SA)
+      TF_VAR_create_dns_zone: "false"
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SA_EMAIL }}
           access_token_scopes: https://www.googleapis.com/auth/cloud-platform
+
       - uses: hashicorp/setup-terraform@v3
 
-      # Debug útil si vuelve a fallar
-      - name: show tree
+      - name: Show tree (debug)
         run: |
           pwd
           ls -la
           ls -la ../..
 
-      - run: terraform init
-      - run: terraform validate
+      - name: Terraform init (usa backend GCS bucket_estados_tf)
+        run: terraform init
 
+      - name: Terraform validate
+        run: terraform validate
+
+      # PLAN en PR
       - if: github.event_name == 'pull_request'
-        run: terraform plan -var="project_id=${{ secrets.GCP_PROJECT_ID }}" -var="region=us-east1" -var="zone=us-east1-c"
+        name: Terraform plan
+        run: terraform plan -input=false \
+              -var="zone=us-east1-c" \
+              -var="pool_size=2" \
+              -var="worker_image=docker.io/facundootero/worker-cpu:latest"
 
+      # APPLY en push a main
       - if: github.event_name != 'pull_request'
-        run: |
-              set -euo pipefail
-              terraform apply -input=false -auto-approve \
-                -var="project_id=${{ secrets.GCP_PROJECT_ID }}" \
-                -var="region=us-east1" \
-                -var="zone=us-east1-c" \
-                -var="pool_size=2" \
-                -var="worker_image=docker.io/facundootero/worker-cpu:latest"
-                  
+        name: Terraform apply
+        run: terraform apply -input=false -auto-approve \
+              -var="zone=us-east1-c" \
+              -var="pool_size=2" \
+              -var="worker_image=docker.io/facundootero/worker-cpu:latest"

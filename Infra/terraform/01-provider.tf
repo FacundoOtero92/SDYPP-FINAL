@@ -4,3 +4,9 @@ provider "google" {
   zone    = var.zone
   region  = var.region
 }
+terraform {
+  backend "gcs" {
+    bucket = "bucket_estados_tf"
+    prefix = "infra/terraform/state"  # carpeta dentro del bucket
+  }
+}
