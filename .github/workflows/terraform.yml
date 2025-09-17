@@ -39,10 +39,27 @@ jobs:
           access_token_scopes: https://www.googleapis.com/auth/cloud-platform
       - uses: hashicorp/setup-terraform@v3
 
+            
+            # antes del "Terraform init"
+      - name: Cache Terraform plugins
+        uses: actions/cache@v3
+        with:
+          path: ~/.terraform.d/plugin-cache
+          key: ${{ runner.os }}-tfplugins-${{ hashFiles('Infra/terraform/**/.terraform.lock.hcl') }}
+          restore-keys: |
+            ${{ runner.os }}-tfplugins-
+
       - name: Terraform init (usar state remoto; no migrar)
+        env:
+          TF_PLUGIN_CACHE_DIR: ~/.terraform.d/plugin-cache
         run: |
           rm -f terraform.tfstate terraform.tfstate.backup || true
-          terraform init -input=false -reconfigure -no-color
+          terraform init -input=false -reconfigure -no-color -upgrade=false
+
+            
+      
+      
+      
 
       - name: Terraform validate
         run: terraform validate
