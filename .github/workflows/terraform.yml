@@ -31,7 +31,7 @@ jobs:
       TF_VAR_region:       us-east1
       TF_VAR_vpc_name:     default
       TF_VAR_subnet_name:  default
-      TF_VAR_create_dns_zone: "false"
+      TF_VAR_create_dns_zone: "true"
       TF_VAR_zone:         us-east1-c
       TF_VAR_pool_size:    "2"
       TF_VAR_worker_image: docker.io/facundootero/worker-cpu:latest
