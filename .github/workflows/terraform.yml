@@ -12,7 +12,6 @@ on:
       - '.github/workflows/terraform.yml'
   workflow_dispatch: {}
 
-# Evita ejecuciones concurrentes que peleen por el state lock
 concurrency:
   group: tf-${{ github.ref_name }}
   cancel-in-progress: false
@@ -26,12 +25,11 @@ jobs:
       run:
         working-directory: Infra/terraform
     env:
-      # Vars que esperan tus *.tf (se pasan como TF_VAR_…)
       TF_VAR_project_id:   ${{ secrets.GCP_PROJECT_ID }}
       TF_VAR_region:       us-east1
       TF_VAR_vpc_name:     default
       TF_VAR_subnet_name:  default
-      TF_VAR_create_dns_zone: "true"
+      TF_VAR_create_dns_zone: "true"   # ponelo en "false" si NO querés que TF administre la zona
       TF_VAR_zone:         us-east1-c
       TF_VAR_pool_size:    "2"
       TF_VAR_worker_image: docker.io/facundootero/worker-cpu:latest
@@ -47,7 +45,6 @@ jobs:
 
       - uses: hashicorp/setup-terraform@v3
 
-      # Cache de plugins para que init no se cuelgue descargando
       - name: Cache Terraform plugins
         uses: actions/cache@v3
         with:
@@ -56,32 +53,42 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-tfplugins-
 
-      # (best-effort) limpiar lock viejo del state remoto
-      - name: Clear stale state lock
+      - name: Clear stale state lock (best-effort)
         run: |
           gcloud storage rm gs://bucket_estados_tf/infra/terraform/state/default.tflock || true
 
-      - name: Terraform init (usar state remoto; no migrar)
+      - name: Terraform init (state remoto; no migrar)
         env:
           TF_PLUGIN_CACHE_DIR: ~/.terraform.d/plugin-cache
         run: |
           rm -f terraform.tfstate terraform.tfstate.backup || true
           terraform init -input=false -reconfigure -no-color -upgrade=false
 
+      # ⬇️ IMPORTS ANTES de plan/apply (idempotentes)
+      - name: Terraform imports (router y DNS si aplica)
+        run: |
+          set -e
+          # Router existente: projects/<PROJECT>/regions/us-east1/routers/router
+          terraform state show google_compute_router.router >/dev/null 2>&1 || \
+            terraform import -input=false google_compute_router.router \
+              projects/${{ secrets.GCP_PROJECT_ID }}/regions/us-east1/routers/router || true
+
+          # Si la zona DNS 'svc-zone' ya existe y querés que TF la administre:
+          terraform state show 'google_dns_managed_zone.svc[0]' >/dev/null 2>&1 || \
+            terraform import -input=false 'google_dns_managed_zone.svc[0]' \
+              projects/${{ secrets.GCP_PROJECT_ID }}/managedZones/svc-zone || true
+
       - name: Terraform validate
         run: terraform validate
 
-      # PLAN en PR
-      - if: github.event_name == 'pull_request'
-        name: Terraform plan
+      - name: Terraform plan
+        if: github.event_name == 'pull_request'
         run: terraform plan -input=false -no-color -lock-timeout=5m
 
-      # APPLY en push a main
-      - if: github.event_name != 'pull_request'
-        name: Terraform apply
+      - name: Terraform apply
+        if: github.event_name != 'pull_request'
         run: terraform apply -input=false -auto-approve -no-color -lock-timeout=5m
 
-      # (Opcional) Mostrar outputs útiles
       - name: Terraform outputs
         if: always()
         run: terraform output || true
