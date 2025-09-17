@@ -12,35 +12,42 @@ on:
       - '.github/workflows/terraform.yml'
   workflow_dispatch: {}
 
+# Evita ejecuciones concurrentes que peleen por el state lock
+concurrency:
+  group: tf-${{ github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
   tf:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions: { id-token: write, contents: read }
     defaults:
       run:
         working-directory: Infra/terraform
     env:
+      # Vars que esperan tus *.tf (se pasan como TF_VAR_…)
       TF_VAR_project_id:   ${{ secrets.GCP_PROJECT_ID }}
       TF_VAR_region:       us-east1
       TF_VAR_vpc_name:     default
       TF_VAR_subnet_name:  default
       TF_VAR_create_dns_zone: "false"
-      # ⬇️ mueve aquí las vars que dabas con -var
       TF_VAR_zone:         us-east1-c
       TF_VAR_pool_size:    "2"
       TF_VAR_worker_image: docker.io/facundootero/worker-cpu:latest
 
     steps:
       - uses: actions/checkout@v4
+
       - uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SA_EMAIL }}
           access_token_scopes: https://www.googleapis.com/auth/cloud-platform
+
       - uses: hashicorp/setup-terraform@v3
 
-            
-            # antes del "Terraform init"
+      # Cache de plugins para que init no se cuelgue descargando
       - name: Cache Terraform plugins
         uses: actions/cache@v3
         with:
@@ -49,6 +56,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-tfplugins-
 
+      # (best-effort) limpiar lock viejo del state remoto
+      - name: Clear stale state lock
+        run: |
+          gcloud storage rm gs://bucket_estados_tf/infra/terraform/state/default.tflock || true
+
       - name: Terraform init (usar state remoto; no migrar)
         env:
           TF_PLUGIN_CACHE_DIR: ~/.terraform.d/plugin-cache
@@ -56,18 +68,20 @@ jobs:
           rm -f terraform.tfstate terraform.tfstate.backup || true
           terraform init -input=false -reconfigure -no-color -upgrade=false
 
-            
-      
-      
-      
-
       - name: Terraform validate
         run: terraform validate
 
+      # PLAN en PR
       - if: github.event_name == 'pull_request'
         name: Terraform plan
-        run: terraform plan -input=false -no-color
+        run: terraform plan -input=false -no-color -lock-timeout=5m
 
+      # APPLY en push a main
       - if: github.event_name != 'pull_request'
         name: Terraform apply
-        run: terraform apply -input=false -auto-approve -no-color
+        run: terraform apply -input=false -auto-approve -no-color -lock-timeout=5m
+
+      # (Opcional) Mostrar outputs útiles
+      - name: Terraform outputs
+        if: always()
+        run: terraform output || true
