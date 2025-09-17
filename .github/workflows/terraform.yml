@@ -64,19 +64,23 @@ jobs:
           rm -f terraform.tfstate terraform.tfstate.backup || true
           terraform init -input=false -reconfigure -no-color -upgrade=false
 
-      # ⬇️ IMPORTS ANTES de plan/apply (idempotentes)
-      - name: Terraform imports (router y DNS si aplica)
+      - name: Terraform imports (router, DNS, subnet)
         run: |
           set -e
-          # Router existente: projects/<PROJECT>/regions/us-east1/routers/router
+          # Router
           terraform state show google_compute_router.router >/dev/null 2>&1 || \
             terraform import -input=false google_compute_router.router \
               projects/${{ secrets.GCP_PROJECT_ID }}/regions/us-east1/routers/router || true
 
-          # Si la zona DNS 'svc-zone' ya existe y querés que TF la administre:
+          # Zona DNS (si corresponde)
           terraform state show 'google_dns_managed_zone.svc[0]' >/dev/null 2>&1 || \
             terraform import -input=false 'google_dns_managed_zone.svc[0]' \
               projects/${{ secrets.GCP_PROJECT_ID }}/managedZones/svc-zone || true
+
+          # Subred 'private' existente
+          terraform state show google_compute_subnetwork.private >/dev/null 2>&1 || \
+            terraform import -input=false google_compute_subnetwork.private \
+              projects/${{ secrets.GCP_PROJECT_ID }}/regions/us-east1/subnetworks/private || true
 
       - name: Terraform validate
         run: terraform validate
