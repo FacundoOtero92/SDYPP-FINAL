@@ -1,10 +1,10 @@
-Infra/terraform/credentials.json
-Infra/terraform/credentials.json
-
-Infra/terraform/credentials.json
-*.json
-**/.terraform/*
+﻿# --- Terraform ---
+.terraform/
 *.tfstate
 *.tfstate.*
+crash.log
 *.tfvars
 *.tfvars.json
+
+# --- GCP Service Account key ---
+infra/terraform/terraform-sa.json
