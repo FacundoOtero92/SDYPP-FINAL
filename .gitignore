@@ -8,3 +8,14 @@ crash.log
 
 # --- GCP Service Account key ---
 infra/terraform/terraform-sa.json
+# --- Terraform (ignorar en cualquier carpeta) ---
+**/.terraform/
+**/*.tfstate
+**/*.tfstate.*
+**/crash.log
+**/*.tfvars
+**/*.tfvars.json
+
+# --- GCP Service Account key ---
+Infra/terraform/terraform-sa.json
+infra/terraform/terraform-sa.json
