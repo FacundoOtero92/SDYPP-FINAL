@@ -56,15 +56,16 @@ kind: Service
 metadata:
   name: coordinador-integrador
   namespace: integrador
-annotations:
-    cloud.google.com/load-balancer-type: "Internal"    
+  annotations:
+    cloud.google.com/load-balancer-type: "Internal"
 spec:
+  # por ejemplo:
   type: LoadBalancer
-  loadBalancerIP: 10.142.0.50 
   selector:
-    app: coordinator
+    app: coordinador
   ports:
-    - protocol: TCP
-      port: 5000
+    - name: http
+      port: 80
       targetPort: 5000
+
  

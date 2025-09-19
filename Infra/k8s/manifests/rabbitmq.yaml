@@ -17,13 +17,13 @@ metadata:
     cloud.google.com/load-balancer-type: "Internal"  # ILB
 spec:
   type: LoadBalancer
-  loadBalancerIP: 10.142.0.42  
   selector:
     app: rabbitmq
   ports:
     - name: amqp
       port: 5672
       targetPort: 5672
+
 ---
 apiVersion: v1
 kind: Service
