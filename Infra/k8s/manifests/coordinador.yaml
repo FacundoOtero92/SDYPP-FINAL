@@ -20,7 +20,7 @@ spec:
     spec:
       serviceAccountName: coordinator-ksa
       containers:
-        - name: coordinator           # ← opcional, pero mejor unificar
+        - name: coordinator
           image: docker.io/facundootero/coordinator:latest
           imagePullPolicy: Always
           ports:
@@ -30,6 +30,7 @@ spec:
               value: rabbitmq
             - name: REDIS_HOST
               value: redis-integrador
+          # Mantengo probes por TCP como tenías (si luego agregás /healthz, pasamos a httpGet)
           livenessProbe:
             tcpSocket:
               port: 5000
@@ -53,10 +54,13 @@ kind: Service
 metadata:
   name: coordinador-integrador
   namespace: integrador
+  annotations:
+    # Forzamos NEG para que el Ingress GCE enrute a nivel pod (recomendado)
+    cloud.google.com/neg: '{"ingress": true}'
 spec:
-  type: ClusterIP                     # ← antes era LoadBalancer
+  type: ClusterIP
   selector:
-    app: coordinator                  # ← corrige el mismatch
+    app: coordinator   # ← ahora sí matchea con el Deployment
   ports:
     - name: http
       port: 80
@@ -68,10 +72,11 @@ metadata:
   name: coordinador
   namespace: integrador
   annotations:
-    kubernetes.io/ingress.class: traefik
+    kubernetes.io/ingress.class: "gce"  # opcional si usás ingressClassName abajo
 spec:
+  ingressClassName: gce                 # ← clave: lo procesa el controlador de GKE
   rules:
-    - host: coordinador.tu-dominio.com   # cámbialo o usa un host local
+    - host: coordinador.tu-dominio.com  # ⚠️ reemplazar por tu dominio/host
       http:
         paths:
           - path: /
