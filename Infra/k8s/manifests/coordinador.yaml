@@ -9,7 +9,7 @@ spec:
   replicas: 1
   revisionHistoryLimit: 2
   strategy:
-    type: Recreate #
+    type: Recreate
   selector:
     matchLabels:
       app: coordinator
@@ -19,11 +19,8 @@ spec:
         app: coordinator
     spec:
       serviceAccountName: coordinator-ksa
-      # Descomenta si tu repo de Docker fuera privado
-      # imagePullSecrets:
-      #   - name: dockerhub-cred
       containers:
-        - name: coordinador
+        - name: coordinator           # ← opcional, pero mejor unificar
           image: docker.io/facundootero/coordinator:latest
           imagePullPolicy: Always
           ports:
@@ -56,16 +53,31 @@ kind: Service
 metadata:
   name: coordinador-integrador
   namespace: integrador
-  annotations:
-    cloud.google.com/load-balancer-type: "Internal"
 spec:
-  # por ejemplo:
-  type: LoadBalancer
+  type: ClusterIP                     # ← antes era LoadBalancer
   selector:
-    app: coordinador
+    app: coordinator                  # ← corrige el mismatch
   ports:
     - name: http
       port: 80
       targetPort: 5000
-
- 
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: coordinador
+  namespace: integrador
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+    - host: coordinador.tu-dominio.com   # cámbialo o usa un host local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: coordinador-integrador
+                port:
+                  number: 80
