@@ -30,7 +30,6 @@ spec:
               value: rabbitmq
             - name: REDIS_HOST
               value: redis-integrador
-          # Mantengo probes por TCP como tenías (si luego agregás /healthz, pasamos a httpGet)
           livenessProbe:
             tcpSocket:
               port: 5000
@@ -54,10 +53,10 @@ kind: Service
 metadata:
   name: coordinador-integrador
   namespace: integrador
-  spec:
+spec:
   type: ClusterIP
   selector:
-    app: coordinator   # ← ahora sí matchea con el Deployment
+    app: coordinator
   ports:
     - name: http
       port: 80
@@ -69,12 +68,11 @@ metadata:
   name: coordinador
   namespace: integrador
   annotations:
-    kubernetes.io/ingress.class:  "nginx"  # opcional si usás ingressClassName abajo
+    kubernetes.io/ingress.class: "nginx"
 spec:
-  ingressClassName: gce                 # ← clave: lo procesa el controlador de GKE
+  ingressClassName: nginx
   rules:
-    - host: coordinador.tu-dominio.com  # ⚠️ reemplazar por tu dominio/host
-      http:
+    - http:
         paths:
           - path: /
             pathType: Prefix
