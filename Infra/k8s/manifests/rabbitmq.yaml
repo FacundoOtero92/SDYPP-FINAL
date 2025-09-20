@@ -51,11 +51,11 @@ spec:
             failureThreshold: 6
           resources:
             requests:
-              cpu: "100m"
-              memory: "256Mi"
+              cpu: "50m"
+              memory: "128Mi"
             limits:
-              cpu: "500m"
-              memory: "512Mi"
+              cpu: "300m"
+              memory: "256Mi"
 ---
 # Service AMQP interno (sin LB/NEG)
 apiVersion: v1
