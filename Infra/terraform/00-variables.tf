@@ -149,7 +149,7 @@ variable "worker_env" {
   default = {
     RABBITMQ_USER     = "guest"
     RABBITMQ_PASSWORD = "guest"
-    RABBITMQ_HOST     = "10.142.0.42"   # ILB de rabbitmq
+    RABBITMQ_HOST     = "10.142.0.42" # ILB de rabbitmq
     RABBITMQ_PORT     = "5672"
     COORDINATOR_HOST  = "10.0.0.20"
     COORDINATOR_PORT  = "5000"

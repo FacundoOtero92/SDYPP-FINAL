@@ -7,14 +7,14 @@ provider "google" {
 terraform {
   backend "gcs" {
     bucket = "bucket_estados_tf"
-    prefix = "infra/terraform/state"  # carpeta dentro del bucket
+    prefix = "infra/terraform/state" # carpeta dentro del bucket
   }
 }
 terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "6.11"   # por ej. 6.11.x; si no, 6.10.x
+      version = "6.11" # por ej. 6.11.x; si no, 6.10.x
     }
   }
 }

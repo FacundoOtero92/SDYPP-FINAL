@@ -1,16 +1,17 @@
+############################
+# Variables
+############################
 
-
-# En vez de self_link pedimos nombres y resolvemos con data sources
 variable "vpc_name" {
   description = "Nombre de la VPC"
   type        = string
-  default     = "default"
+  default     = "main" # <— antes 'default'
 }
 
 variable "subnet_name" {
   description = "Nombre de la subred en la región indicada"
   type        = string
-  default     = "default"
+  default     = "private" # <— antes 'default'
 }
 
 variable "dns_domain" {
@@ -32,9 +33,8 @@ variable "create_dns_zone" {
 }
 
 ############################
-# Data sources: resuelven self_links a partir de nombres
+# Data sources (resuelven self_links)
 ############################
-
 data "google_compute_network" "vpc" {
   name = var.vpc_name
 }
@@ -45,29 +45,19 @@ data "google_compute_subnetwork" "subnet" {
 }
 
 ############################
-# IPs internas estáticas (ILB)
+# IP interna estática para ingress-nginx (ILB)
 ############################
-
-resource "google_compute_address" "coord_ilb" {
-  name         = "coord-ilb"
+resource "google_compute_address" "ingress_ilb" {
+  name         = "ingress-ilb"
   region       = var.region
   address_type = "INTERNAL"
   subnetwork   = data.google_compute_subnetwork.subnet.self_link
-  # address    = "X.X.X.X"  # opcional: si lo omitís, GCP asigna una libre válida
-}
-
-resource "google_compute_address" "rabbit_ilb" {
-  name         = "rabbit-ilb"
-  region       = var.region
-  address_type = "INTERNAL"
-  subnetwork   = data.google_compute_subnetwork.subnet.self_link
-  # address    = "X.X.X.X"
+  # address    = "10.0.0.50"  # opcional: si querés fijarla; si no, GCP asigna una libre
 }
 
 ############################
 # DNS privado (Cloud DNS)
 ############################
-
 resource "google_dns_managed_zone" "svc" {
   count      = var.create_dns_zone ? 1 : 0
   name       = var.dns_zone_name
@@ -85,12 +75,13 @@ locals {
   zone_name = var.create_dns_zone ? google_dns_managed_zone.svc[0].name : var.dns_zone_name
 }
 
+# A records para distintos nombres apuntando al mismo ILB
 resource "google_dns_record_set" "coordinator_a" {
   name         = "coordinator.${var.dns_domain}"
   type         = "A"
   ttl          = 30
   managed_zone = local.zone_name
-  rrdatas      = [google_compute_address.coord_ilb.address]
+  rrdatas      = [google_compute_address.ingress_ilb.address]
 }
 
 resource "google_dns_record_set" "rabbitmq_a" {
@@ -98,21 +89,15 @@ resource "google_dns_record_set" "rabbitmq_a" {
   type         = "A"
   ttl          = 30
   managed_zone = local.zone_name
-  rrdatas      = [google_compute_address.rabbit_ilb.address]
+  rrdatas      = [google_compute_address.ingress_ilb.address]
 }
 
 ############################
 # Outputs
 ############################
-
-output "coordinator_ilb_ip" {
-  description = "IP interna del coordinator (ILB)"
-  value       = google_compute_address.coord_ilb.address
-}
-
-output "rabbitmq_ilb_ip" {
-  description = "IP interna de RabbitMQ (ILB)"
-  value       = google_compute_address.rabbit_ilb.address
+output "ingress_ilb_ip" {
+  description = "IP interna del Ingress (ILB)"
+  value       = google_compute_address.ingress_ilb.address
 }
 
 output "coordinator_fqdn" {

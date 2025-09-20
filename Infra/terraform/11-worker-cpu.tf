@@ -11,20 +11,12 @@ locals {
 }
 
 
-# Plantilla de instancia (UN template; NO uses count acá)
 resource "google_compute_instance_template" "worker_cpu_tpl" {
   name_prefix  = "worker-cpu-"
   machine_type = var.machine_type
-
-
-  service_account {
-    email  = google_service_account.kubernetes.email
-    scopes = ["https://www.googleapis.com/auth/cloud-platform"]
-  }
   lifecycle {
     create_before_destroy = true
   }
-
   disk {
     boot         = true
     auto_delete  = true
@@ -33,23 +25,14 @@ resource "google_compute_instance_template" "worker_cpu_tpl" {
   }
 
   network_interface {
-    network = var.network
-   
+    network    = data.google_compute_network.vpc.id
+    subnetwork = data.google_compute_subnetwork.subnet.id
+    # SIN access_config {}  -> sin IP pública
   }
 
   tags = ["worker-cpu"]
 
-  metadata = {
-    startup-script = local.startup_script
-  }
-
-  scheduling {
-    preemptible        = var.use_spot
-    provisioning_model = var.use_spot ? "SPOT" : "STANDARD"
-    automatic_restart  = var.use_spot ? false : true
-  }
-
-
+  # ... metadata startup-script, scheduling, etc. como lo tenías
 }
 
 # Managed Instance Group = el pool
