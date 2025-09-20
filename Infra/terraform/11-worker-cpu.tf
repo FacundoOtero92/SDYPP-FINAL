@@ -34,7 +34,7 @@ resource "google_compute_instance_template" "worker_cpu_tpl" {
 
   network_interface {
     network = var.network
-    access_config {} # IP pública (si no usás NAT)
+   
   }
 
   tags = ["worker-cpu"]
