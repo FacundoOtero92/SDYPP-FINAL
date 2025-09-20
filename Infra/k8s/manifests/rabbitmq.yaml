@@ -9,6 +9,8 @@ spec:
   selector:
     matchLabels:
       app: rabbitmq
+  strategy:           
+    type: Recreate      
   template:
     metadata:
       labels:
@@ -28,8 +30,8 @@ spec:
             - name: RABBITMQ_DEFAULT_PASS
               valueFrom:
                 secretKeyRef:
-                  name: rabbitmq-admin # crea este Secret o cambia a value: "tu-pass"
-                  key: password
+                  name: 'guest' # crea este Secret o cambia a value: "tu-pass"
+                  key: 'guest'
             # opcional:
             # - name: RABBITMQ_DEFAULT_VHOST
             #   value: "/"
