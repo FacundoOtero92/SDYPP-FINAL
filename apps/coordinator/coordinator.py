@@ -7,6 +7,8 @@ import pika
 import redis
 import time
 from google.cloud import storage
+import os
+from pika.exceptions import AMQPConnectionError, ChannelWrongStateError, StreamLostError
 
 app = Flask(__name__)
 @app.get("/alive")
@@ -55,28 +57,36 @@ def redisConnect():
 # Conexión a RabbitMQ
 # =========================
 def queueConnect():
-    connection = pika.BlockingConnection(pika.ConnectionParameters(
-        host=hostRabbit,
-        port=5672,
-        credentials=pika.PlainCredentials("guest", "guest"),
-    ))
-    channel = connection.channel()
+    host = os.getenv("RABBIT_HOST") or os.getenv("RABBITMQ_HOST", "rabbitmq")
+    port = int(os.getenv("RABBIT_PORT") or os.getenv("RABBITMQ_PORT") or 5672)
+    vhost = os.getenv("RABBIT_VHOST") or os.getenv("RABBITMQ_VHOST") or "/"
+    user  = os.getenv("RABBIT_USER") or os.getenv("RABBITMQ_USER") or "admin"
+    pwd   = os.getenv("RABBIT_PASS") or os.getenv("RABBITMQ_PASS") or ""
 
-    # Cola de transacciones
-    channel.queue_declare(queue=queueNameTx, durable=True, arguments={"x-queue-type": "quorum"})
+    params = pika.ConnectionParameters(
+        host=host, port=port, virtual_host=vhost,
+        credentials=pika.PlainCredentials(user, pwd),
+        heartbeat=30, blocked_connection_timeout=30,
+        connection_attempts=10, retry_delay=3,
+    )
 
-    # (Se mantiene) Exchange de trabajo para compatibilidad
-    channel.exchange_declare(exchange=exchangeBlock, exchange_type='topic', durable=True)
+    for i in range(10):  # reintentos de arranque
+        try:
+            connection = pika.BlockingConnection(params)
+            channel = connection.channel()
+            # Declaraciones (idempotentes)
+            channel.queue_declare(queue=queueNameTx, durable=True, arguments={"x-queue-type": "quorum"})
+            channel.exchange_declare(exchange=exchangeBlock, exchange_type='topic', durable=True)
+            channel.exchange_declare(exchange=POOL_EXCHANGE, exchange_type='direct', durable=True)
+            channel.queue_declare(queue=POOL_QUEUE, durable=True, arguments={"x-queue-type": "quorum"})
+            channel.queue_bind(exchange=POOL_EXCHANGE, queue=POOL_QUEUE, routing_key=POOL_RK)
+            print('[x] Conectado a RabbitMQ', flush=True)
+            return connection, channel
+        except (AMQPConnectionError, StreamLostError, ChannelWrongStateError) as e:
+            print(f"[rabbit] intento {i+1} falló: {e}", flush=True)
+            time.sleep(1 + i)
 
-    # NUEVO: Inbox del pool (direct + binding 'tasks')
-    channel.exchange_declare(exchange=POOL_EXCHANGE, exchange_type='direct', durable=True)
-    channel.queue_declare(queue=POOL_QUEUE, durable=True, arguments={"x-queue-type": "quorum"})
-    channel.queue_bind(exchange=POOL_EXCHANGE, queue=POOL_QUEUE, routing_key=POOL_RK)
-
-    print(f'[x] Conectado a RabbitMQ', flush=True)
-    return connection, channel
-
-
+    raise RuntimeError("RabbitMQ no disponible después de reintentos")
 #  =========================
 # Bucket (GCS)
 #  =========================
