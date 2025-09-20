@@ -31,22 +31,16 @@ spec:
             - name: REDIS_HOST
               value: redis-integrador
           livenessProbe:
-            tcpSocket:
-              port: 5000
+            tcpSocket: { port: 5000 }
             initialDelaySeconds: 10
             periodSeconds: 10
           readinessProbe:
-            tcpSocket:
-              port: 5000
+            tcpSocket: { port: 5000 }
             initialDelaySeconds: 5
             periodSeconds: 10
           resources:
-            requests:
-              cpu: "100m"
-              memory: "128Mi"
-            limits:
-              cpu: "200m"
-              memory: "256Mi"
+            requests: { cpu: "100m", memory: "128Mi" }
+            limits:   { cpu: "200m", memory: "256Mi" }
 ---
 apiVersion: v1
 kind: Service
