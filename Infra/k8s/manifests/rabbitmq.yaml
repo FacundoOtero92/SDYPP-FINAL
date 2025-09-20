@@ -13,16 +13,15 @@ kind: Service
 metadata:
   name: rabbitmq
   namespace: integrador
-  annotations:
-    cloud.google.com/load-balancer-type: "Internal"  # ILB
 spec:
-  type: LoadBalancer
+  type: ClusterIP
   selector:
     app: rabbitmq
   ports:
     - name: amqp
       port: 5672
       targetPort: 5672
+
 
 ---
 apiVersion: v1
@@ -75,3 +74,24 @@ spec:
           resources:
             requests: { cpu: "50m",  memory: "128Mi" }
             limits:   {            memory: "512Mi" }
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rabbitmq-ui
+  namespace: integrador
+  annotations:
+    kubernetes.io/ingress.class: "nginx"   # opcional
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /rabbitmq
+            pathType: Prefix
+            backend:
+              service:
+                name: rabbitmq-ui
+                port:
+                  number: 15672
+

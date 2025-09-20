@@ -54,10 +54,7 @@ kind: Service
 metadata:
   name: coordinador-integrador
   namespace: integrador
-  annotations:
-    # Forzamos NEG para que el Ingress GCE enrute a nivel pod (recomendado)
-    cloud.google.com/neg: '{"ingress": true}'
-spec:
+  spec:
   type: ClusterIP
   selector:
     app: coordinator   # ← ahora sí matchea con el Deployment
@@ -72,7 +69,7 @@ metadata:
   name: coordinador
   namespace: integrador
   annotations:
-    kubernetes.io/ingress.class: "gce"  # opcional si usás ingressClassName abajo
+    kubernetes.io/ingress.class:  "nginx"  # opcional si usás ingressClassName abajo
 spec:
   ingressClassName: gce                 # ← clave: lo procesa el controlador de GKE
   rules:
