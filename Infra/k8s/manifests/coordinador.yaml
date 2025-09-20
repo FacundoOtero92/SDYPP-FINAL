@@ -22,12 +22,20 @@ spec:
       containers:
         - name: coordinator
           image: docker.io/facundootero/coordinator:latest
-          imagePullPolicy: Always
-          ports:
-            - containerPort: 5000
           env:
-            - name: RABBITMQ_HOST
+            - name: RABBIT_HOST
               value: rabbitmq
+            - name: RABBIT_PORT
+              value: "5672"
+            - name: RABBIT_VHOST
+              value: "/"
+            - name: RABBIT_USER
+              value: "admin"
+            - name: RABBIT_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-admin
+                  key: password
             - name: REDIS_HOST
               value: redis-integrador
           livenessProbe:
