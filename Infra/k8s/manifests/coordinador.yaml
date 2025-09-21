@@ -24,24 +24,26 @@ spec:
           image: docker.io/facundootero/coordinator:latest
           imagePullPolicy: Always
           env:
-          - name: RABBITMQ_HOST
-            value: "rabbitmq"
-          - name: RABBITMQ_PORT
-            value: "5672"
-          - name: RABBITMQ_VHOST
-            value: "/"
-          - name: RABBITMQ_USER
-            valueFrom:
-              secretKeyRef:
-                name: rabbitmq-admin
-                key: username
-          - name: RABBITMQ_PASS
-            valueFrom:
-              secretKeyRef:
-                name: rabbitmq-admin
-                key: password
-          - name: REDIS_HOST
-            value: redis-integrador
+            - name: RABBITMQ_HOST
+              value: "rabbitmq"
+            - name: RABBITMQ_PORT
+              value: "5672"
+            - name: RABBITMQ_VHOST
+              value: "/"
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-admin
+                  key: username
+            - name: RABBITMQ_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-admin
+                  key: password
+  # (Eliminar RABBIT_HOST/PORT/VHOST/USER/PASS si existen)
+
+            - name: REDIS_HOST
+              value: redis-integrador
           livenessProbe:
             tcpSocket: { port: 5000 }
             initialDelaySeconds: 10
