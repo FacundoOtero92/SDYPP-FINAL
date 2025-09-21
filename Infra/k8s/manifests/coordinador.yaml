@@ -23,6 +23,9 @@ spec:
         - name: coordinator
           image: docker.io/facundootero/coordinator:latest
           imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 5000
           env:
             - name: RABBITMQ_HOST
               value: "rabbitmq"
@@ -39,14 +42,22 @@ spec:
 
             - name: REDIS_HOST
               value: redis-integrador
+          startupProbe:
+            httpGet: { path: /alive, port: 5000 }
+            periodSeconds: 5
+            failureThreshold: 30     # ~150s para arrancar
           livenessProbe:
-            tcpSocket: { port: 5000 }
-            initialDelaySeconds: 10
+            httpGet: { path: /alive, port: 5000 }
+            initialDelaySeconds: 60
             periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
           readinessProbe:
-            tcpSocket: { port: 5000 }
-            initialDelaySeconds: 5
-            periodSeconds: 10
+            httpGet: { path: /status, port: 5000 }
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 12     # ~60s warm-up
           resources:
             requests: { cpu: "100m", memory: "128Mi" }
             limits:   { cpu: "200m", memory: "256Mi" }
