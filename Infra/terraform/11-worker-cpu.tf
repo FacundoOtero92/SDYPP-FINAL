@@ -39,7 +39,7 @@ resource "google_compute_instance_template" "worker_cpu_tpl" {
 resource "google_compute_instance_group_manager" "worker_cpu_mig" {
   name               = "worker-cpu-mig"
   base_instance_name = "worker-cpu"
-  zone               = var.zone
+  zone               = "us-central1-c"
 
   version {
     instance_template = google_compute_instance_template.worker_cpu_tpl.self_link
