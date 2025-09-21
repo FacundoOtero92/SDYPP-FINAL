@@ -42,22 +42,28 @@ spec:
 
             - name: REDIS_HOST
               value: redis-integrador
-          # startupProbe:
-          #   httpGet: { path: /alive, port: 5000 }
-          #   periodSeconds: 5
-          #   failureThreshold: 30     # ~150s para arrancar
-          # livenessProbe:
-          #   httpGet: { path: /alive, port: 5000 }
-          #   initialDelaySeconds: 60
-          #   periodSeconds: 10
-          #   timeoutSeconds: 2
-          #   failureThreshold: 3
-          # readinessProbe:
-          #   httpGet: { path: /status, port: 5000 }
-          #   initialDelaySeconds: 10
-          #   periodSeconds: 5
-          #   timeoutSeconds: 2
-          #   failureThreshold: 12     # ~60s warm-up
+          startupProbe:
+            httpGet:
+              path: /alive
+              port: 5000
+            periodSeconds: 5
+            failureThreshold: 30     # ~150s para arrancar todo
+          livenessProbe:
+            httpGet:
+              path: /alive
+              port: 5000
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /status
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 12   
           resources:
             requests: { cpu: "100m", memory: "128Mi" }
             limits:   { cpu: "200m", memory: "256Mi" }
