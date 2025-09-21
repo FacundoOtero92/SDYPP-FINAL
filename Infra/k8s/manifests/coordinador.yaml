@@ -22,6 +22,7 @@ spec:
       containers:
         - name: coordinator
           image: docker.io/facundootero/coordinator:fix-rabbit-env
+          imagePullPolicy: Always
           env:
           - name: RABBIT_HOST
             value: rabbitmq
