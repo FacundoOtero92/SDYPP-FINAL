@@ -21,18 +21,21 @@ spec:
       serviceAccountName: coordinator-ksa
       containers:
         - name: coordinator
-          image: docker.io/facundootero/coordinator:fix-rabbit-env
+          image: docker.io/facundootero/coordinator:latest
           imagePullPolicy: Always
           env:
-          - name: RABBIT_HOST
-            value: rabbitmq
-          - name: RABBIT_PORT
+          - name: RABBITMQ_HOST
+            value: "rabbitmq"
+          - name: RABBITMQ_PORT
             value: "5672"
-          - name: RABBIT_VHOST
+          - name: RABBITMQ_VHOST
             value: "/"
-          - name: RABBIT_USER
-            value: "admin"
-          - name: RABBIT_PASS
+          - name: RABBITMQ_USER
+            valueFrom:
+              secretKeyRef:
+                name: rabbitmq-admin
+                key: username
+          - name: RABBITMQ_PASS
             valueFrom:
               secretKeyRef:
                 name: rabbitmq-admin

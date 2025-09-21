@@ -57,11 +57,11 @@ def redisConnect():
 # Conexión a RabbitMQ
 # =========================
 def queueConnect():
-    host = os.getenv("RABBIT_HOST") or os.getenv("RABBITMQ_HOST", "rabbitmq")
-    port = int(os.getenv("RABBIT_PORT") or os.getenv("RABBITMQ_PORT") or 5672)
-    vhost = os.getenv("RABBIT_VHOST") or os.getenv("RABBITMQ_VHOST") or "/"
-    user  = os.getenv("RABBIT_USER") or os.getenv("RABBITMQ_USER") or "admin"
-    pwd   = os.getenv("RABBIT_PASS") or os.getenv("RABBITMQ_PASS") or ""
+    host = os.getenv("RABBITMQ_HOST", "rabbitmq")
+    port = int( os.getenv("RABBITMQ_PORT") or 5672)
+    vhost = os.getenv("RABBITMQ_VHOST") or "/"
+    user  =  os.getenv("RABBITMQ_USER") or "admin"
+    pwd   = os.getenv("RABBITMQ_PASS") or ""
 
     params = pika.ConnectionParameters(
         host=host, port=port, virtual_host=vhost,

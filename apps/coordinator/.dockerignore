@@ -1,0 +1,14 @@
+.git
+**/.git
+**/__pycache__
+**/*.pyc
+*.log
+venv
+.venv
+.env
+node_modules
+../../
+*/infra/
+*/k8s/
+*/manifests/
+*/terraform/
