@@ -344,4 +344,4 @@ status_thread = threading.Thread(target=processPackages)
 status_thread.start()
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0')
+    app.run(host='0.0.0.0', port=int(os.getenv('PORT','5000')))
