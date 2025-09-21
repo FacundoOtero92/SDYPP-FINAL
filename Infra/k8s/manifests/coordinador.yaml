@@ -31,12 +31,16 @@ spec:
             - name: RABBITMQ_VHOST
               value: "/"
             - name: RABBITMQ_USER
-              value: "admin"
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-admin
+                  key: username
             - name: RABBITMQ_PASS
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-admin
                   key: password
+
   # (Eliminar RABBIT_HOST/PORT/VHOST/USER/PASS si existen)
 
             - name: REDIS_HOST
