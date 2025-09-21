@@ -28,7 +28,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-admin     # <- secret correcto
-                  key: "admin123!"         # <- key correcto
+                  key: password      # <- key correcto
             # - name: RABBITMQ_DEFAULT_VHOST
             #   value: "/"
           # Probes que no requieren credenciales:
