@@ -39,7 +39,7 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-admin
-                  key: password
+                  key: "admin123!"
   # (Eliminar RABBIT_HOST/PORT/VHOST/USER/PASS si existen)
 
             - name: REDIS_HOST
