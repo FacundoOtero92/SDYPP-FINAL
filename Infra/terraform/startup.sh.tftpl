@@ -1,60 +1,75 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -euxo pipefail
 
 LOG="/var/log/startup-worker-cpu.log"
 exec > >(tee -a "$LOG") 2>&1
 
-retry() { n=0; max=$${2:-5}; delay=$${3:-6}; until bash -lc "$1"; do n=$((n+1)); [ "$n" -ge "$max" ] && { echo "Fallo: $1"; return 1; }; echo "retry $n/$max: $1"; sleep "$delay"; done; }
+retry() {
+  local cmd="$1"; local max="${2:-5}"; local delay="${3:-6}"
+  local n=0
+  until bash -lc "$cmd"; do
+    n=$((n+1))
+    if [ "$n" -ge "$max" ]; then
+      echo "ERROR: '$cmd' failed after $n attempts"
+      return 1
+    fi
+    echo "retry $n/$max: $cmd"
+    sleep "$delay"
+  done
+}
 
-# 1) Instalar Docker si no está
+# -------- 1) Instalar Docker si no está --------
 if ! command -v docker >/dev/null 2>&1; then
   export DEBIAN_FRONTEND=noninteractive
   retry "apt-get update -y" 5 8
   retry "apt-get install -y ca-certificates curl gnupg lsb-release" 5 8
   install -m 0755 -d /etc/apt/keyrings
-  curl -fsSL https://download.docker.com/linux/$(. /etc/os-release && echo "$ID")/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  # agregar llave de Docker
+  . /etc/os-release
+  curl -fsSL "https://download.docker.com/linux/${ID}/gpg" | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
   chmod a+r /etc/apt/keyrings/docker.gpg
-  echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$(. /etc/os-release && echo "$ID") $(. /etc/os-release && echo "$VERSION_CODENAME") stable" > /etc/apt/sources.list.d/docker.list
+  echo \
+    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/${ID} \
+    $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
   retry "apt-get update -y" 5 8
-  
-if ! retry "apt-get install -y docker-ce docker-ce-cli containerd.io" 3 10; then
-    retry "apt-get install -y docker.io" 3 10
-  fi
+  retry "apt-get install -y docker-ce docker-ce-cli containerd.io" 5 8
 fi
-# Agregar usuarios comunes al grupo docker (si existen)
-if id -u ubuntu >/dev/null 2>&1; then
-  usermod -aG docker ubuntu || true
-fi
+systemctl enable --now docker
 
-# Intentar agregar miembros de google-sudoers (cuando ya estén creados)
-if getent group google-sudoers >/dev/null; then
-  for u in $(getent group google-sudoers | awk -F: '{print $4}' | tr , ' '); do
-    [ -n "$u" ] && usermod -aG docker "$u" || true
-  done
-fi
-# Habilitar y arrancar docker y esperar que responda
-systemctl daemon-reload || true
-systemctl enable docker || true
-systemctl start docker || true
-for i in {1..20}; do docker info >/dev/null 2>&1 && break; echo "docker no listo; reintentando..."; systemctl restart docker || true; sleep 3; done
+# -------- 2) Variables y .env --------
+mkdir -p /opt/worker-cpu
 
-# 2) .env del worker
-install -d -m 0755 /opt/worker-cpu
-cat > /opt/worker-cpu/.env <<'EOF'
-%{ for k, v in worker_env ~}
-${k}=${v}
-%{ endfor ~}
-WORKER_ID=$${HOSTNAME}
-EOF
+cat >/opt/worker-cpu/.env <<'ENV'
+# --- RabbitMQ ILB interno ---
+RABBITMQ_HOST=10.142.15.235
+RABBITMQ_PORT=5672
+RABBITMQ_USER=admin
+RABBITMQ_PASSWORD=admin1234!
+RABBITMQ_VHOST=/
+RABBITMQ_QUEUE=pool.tasks
 
-# 3) Ejecutar contenedor
-IMAGE="${worker_image}"
-docker rm -f worker-cpu || true
-docker run -d --name worker-cpu \
-  --restart unless-stopped \
-  --env-file /opt/worker-cpu/.env \
-  "$IMAGE" \
-  > /var/log/worker-cpu.container 2>&1
+# --- Coordenador HTTP (por el Ingress) ---
+# usa la IP pública del Ingress o tu dominio
+COORDINATOR_URL=http://<IP_O_DOMINIO_INGRESS>/solved_task
 
-# 4) Log continuo (una sola vez)
+# Identificador opcional del worker
+WORKER_ID=${HOSTNAME}
+ENV
+
+# -------- 3) Ejecutar contenedor --------
+IMAGE="facundootero/worker-cpu:2025-09-22"
+# si usás Docker Hub: IMAGE="tuusuario/worker-cpu:<TAG>"
+
+# pull tolerante (si es primera vez puede tardar)
+retry "docker pull \"$IMAGE\"" 6 20 || true
+
+# recrear
+docker rm -f worker-cpu >/dev/null 2>&1 || true
+retry "docker run -d --name worker-cpu --restart unless-stopped --env-file /opt/worker-cpu/.env \"$IMAGE\"" 6 10
+
+# logs en background
 pgrep -f "docker logs -f worker-cpu" >/dev/null || (docker logs -f worker-cpu >> /var/log/worker-cpu.log 2>&1 &)
+
+# estado
+docker ps --format '{{.Names}}\t{{.Image}}\t{{.Status}}' | grep -E '\bworker-cpu\b' || { echo "worker-cpu no quedó corriendo"; exit 1; }
+echo "Startup OK"
