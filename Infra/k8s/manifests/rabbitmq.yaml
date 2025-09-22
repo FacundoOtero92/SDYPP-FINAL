@@ -73,7 +73,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: rabbitmq-ilb
+  name: rabbitmq
   namespace: integrador        
   annotations:
     cloud.google.com/load-balancer-type: "Internal"
