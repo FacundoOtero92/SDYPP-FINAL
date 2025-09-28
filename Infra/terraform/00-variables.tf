@@ -140,24 +140,23 @@ variable "startup_worker_cpu" {
 # ---- Imagen Docker en Docker Hub (pública) ----
 variable "worker_image" {
   type    = string
-  default = "docker.io/facundootero/worker-cpu:latest"
+  default = "docker.io/facundootero/worker-cpu:27-09-2025v2"
 }
 
 # ---- ENV que tu worker necesita (ajustalas a tu script) ----
 variable "worker_env" {
   type = map(string)
   default = {
-    RABBITMQ_USER     = "guest"
-    RABBITMQ_PASSWORD = "guest"
-    RABBITMQ_HOST     = "10.142.0.42" # ILB de rabbitmq
-    RABBITMQ_PORT     = "5672"
-    COORDINATOR_HOST  = "10.0.0.20"
-    COORDINATOR_PORT  = "5000"
-    KEEPALIVE_HOST    = "10.0.0.30"
-    KEEPALIVE_PORT    = "5001"
-    ES_WORKER_POOL    = "1"
+    RABBITMQ_HOST     ="34.148.169.104"   # o IP interna
+  RABBITMQ_PORT     = "5672"
+  RABBITMQ_USER     = "admin"
+  RABBITMQ_PASSWORD = "admin1234!"
+  RABBITMQ_VHOST    = "/"
+  RABBITMQ_QUEUE    = "pool.tasks"             # <- cola a consumir
+  COORDINATOR_URL = "http://34.148.169.104/solved_task"
   }
 }
+
 variable "pool_size" {
   type    = number
   default = 1
@@ -165,4 +164,16 @@ variable "pool_size" {
 variable "use_spot" {
   type    = bool
   default = true
+}
+
+variable "vm_zone"  {
+   default = "us-central1-c"
+    } 
+    
+variable "vm_region"  {
+   default = "us-central1"
+    } 
+
+    locals {
+  vm_region =  "us-central1"
 }
