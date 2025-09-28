@@ -38,10 +38,10 @@ jobs:
           docker build \
             -f "${{ matrix.dockerfile }}" \
             -t "$IMAGE:${{ github.sha }}" \
-            -t "$IMAGE:contentv3" \
+            -t "$IMAGE:latest" \
             "${{ matrix.context }}"
           docker push "$IMAGE:${{ github.sha }}"
-          docker push "$IMAGE:contentv3"
+          docker push "$IMAGE:latest"
 
       - name: Tag & Push SemVer (${{ matrix.name }})  #     sólo  si el push vino por tag v*
         if: ${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v') }}
