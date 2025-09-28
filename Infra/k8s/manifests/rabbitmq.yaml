@@ -27,14 +27,11 @@ spec:
             - name: RABBITMQ_DEFAULT_PASS
               valueFrom:
                 secretKeyRef:
-                  name: rabbitmq-admin     # <- secret correcto
-                  key: password      # <- key correcto
-            # - name: RABBITMQ_DEFAULT_VHOST
-            #   value: "/"
-          # Probes que no requieren credenciales:
+                  name: rabbitmq-admin
+                  key: password
           readinessProbe:
             tcpSocket:
-              port: 5672                   # listo para aceptar AMQP
+              port: 5672
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 3
@@ -42,35 +39,15 @@ spec:
           livenessProbe:
             httpGet:
               path: /
-              port: 15672                  # login page devuelve 200 sin auth
+              port: 15672
             initialDelaySeconds: 20
             periodSeconds: 20
             timeoutSeconds: 5
             failureThreshold: 6
           resources:
-            requests:
-              cpu: "50m"
-              memory: "128Mi"
-            limits:
-              cpu: "300m"
-              memory: "256Mi"
-# ---
-# apiVersion: v1
-# kind: Service
-# metadata:
-#   name: rabbitmq
-#   namespace: integrador
-# spec:
-#   type: ClusterIP
-#   selector:
-#     app: rabbitmq
-#   ports:
-#     - name: amqp
-#       port: 5672
-#       targetPort: 5672
+            requests: { cpu: "50m",  memory: "128Mi" }
+            limits:   { cpu: "300m", memory: "256Mi" }
 ---
-
-# rabbit-lb.yaml
 apiVersion: v1
 kind: Service
 metadata:
@@ -78,7 +55,7 @@ metadata:
   namespace: integrador
   annotations:
     cloud.google.com/load-balancer-type: "Internal"
-  spec:
+spec:                          # <-- al nivel de metadata, NO dentro
   type: LoadBalancer
   selector:
     app: rabbitmq
@@ -91,8 +68,6 @@ metadata:
       port: 15672
       targetPort: 15672
       protocol: TCP
-
-
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -110,6 +85,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: rabbitmq-ui
+                name: rabbitmq       # <-- apuntar al Service correcto
                 port:
                   number: 15672
