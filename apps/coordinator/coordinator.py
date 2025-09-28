@@ -24,8 +24,8 @@ hostRabbit = 'rabbitmq'
 queueNameTx   = 'QueueTransactions'  # cola de transacciones entrantes
 exchangeBlock = 'ExchangeBlock'      # se mantiene declarado por compatibilidad
 
-#  NUEVO: Inbox del worker-pool (coordinator -> pool)
-POOL_EXCHANGE = 'coordinator.inbox'  # exchange (direct)
+#  NUEVO: Inbox del worker-pool ( -> pool)
+POOL_EXCHANGE = '.inbox'  # exchange (direct)
 POOL_QUEUE    = 'pool.tasks'         # queue exclusiva del pool
 POOL_RK       = 'tasks'              # routing key para la inbox
 
@@ -175,7 +175,7 @@ def descargarBlock(bucket, blockId):
     return block
 
 
-# =========================
+ # =========================
 # Endpoints Flask
 # =========================
 @app.route('/transaction', methods=['POST'])
@@ -255,7 +255,7 @@ def receive_solved_task():
         newBlock['baseStringChain']  = block['baseStringChain']
         newBlock['timestamp']        = timestamp
         newBlock['nonce']            = data['result']
-
+        newBlock['blockchainContent'] = newBlock['hashPrevio']
         print(f"[DEBUG] Guardando bloque validado en Redis", flush=True)
         postBlock(newBlock)
         print('[x] Bloque validado » Agregado a la blockchain', flush=True)

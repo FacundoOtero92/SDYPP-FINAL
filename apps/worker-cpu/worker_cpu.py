@@ -9,10 +9,7 @@ VHOST = os.getenv("RABBITMQ_VHOST", "/")
 # QUEUE = os.getenv("QUEUE_NAME", "pool.tasks")  # <- la cola que realmente vas a consumir
 QUEUE = os.getenv("RABBITMQ_QUEUE") or os.getenv("QUEUE_NAME", "pool.tasks")
 
-COORDINATOR_URL = os.getenv(
-    "COORDINATOR_URL",
-    "104.196.19.165:5000/solved_task"
-)
+COORDINATOR_URL = os.getenv("COORDINATOR_URL","http://34.148.169.104/solved_task")
 
 def pika_params():
     return pika.ConnectionParameters(
@@ -43,9 +40,13 @@ def on_message_received(ch, method, properties, body):
     if 'block' in data:
         blk = data['block']
         block_id = blk['blockId']
-        base = blk['baseStringChain']
-        content = blk['blockchainContent']
-        prefijo = blk['prefijo']
+        # base = blk['baseStringChain']
+        # content = blk['blockchainContent']
+        # prefijo = blk['prefijo']
+
+        base    = str(blk.get('baseStringChain', ''))
+        content = str(blk.get('blockchainContent') or '')
+        prefijo = str(blk.get('prefijo', ''))
         num_max = blk.get('numMaxRandom')
         # rango opcional en el envelope
         r = data.get('range', {})

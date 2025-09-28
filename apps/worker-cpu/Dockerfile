@@ -12,7 +12,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY worker_cpu.py .
 
 # Vars overridable en runtime
-ENV RABBITMQ_HOST=rabbitmq
-ENV COORDINATOR_URL=http://coordinador-integrador:5000/solved_task
+ENV PYTHONUNBUFFERED=1 \
+    RABBITMQ_HOST=34.148.169.104 \
+    RABBITMQ_PORT=5672 \
+    RABBITMQ_USER=admin \
+    RABBITMQ_PASSWORD=admin1234! \
+    RABBITMQ_VHOST=/ \
+    RABBITMQ_QUEUE=pool.tasks \
+    COORDINATOR_URL=http://34.148.169.104/solved_task
 
-CMD ["python", "worker_cpu.py"]
+CMD ["python","-u","worker_cpu.py"]
