@@ -1,0 +1,116 @@
+---
+# ===========================================
+# 2) ConfigMap - variables NO secretas
+# ===========================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: coordinador-workers-config
+  namespace: integrador
+data:
+  # ===== Redis donde se guardan heartbeats =====
+  REDIS_HOST: "redis-integrador"     # TODO: host/Service de Redis o IP Memorystore
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  HB_TTL_SEC: "45"
+
+  # ===== RabbitMQ para medir backlog de pool.tasks =====
+  RABBITMQ_HOST: "rabbitmq"          # TODO: Service/LB de RabbitMQ alcanzable desde el cluster
+  RABBITMQ_PORT: "5672"
+  RABBITMQ_USER: "admin"
+  POOL_QUEUE: "pool.tasks"
+
+  # ===== Autoescalado (CPU en MIG) =====
+  ENABLE_AUTOSCALE: "true"           # true/false
+  CPU_BOOT_COUNT: "2"                # cuántas VMs CPU levantar cuando haga falta
+  CHECK_BACKLOG_SEC: "15"
+  MIN_BACKLOG_FOR_CPU: "1"
+  ANTI_FLAP_SEC: "20"
+---
+# ===========================================
+# 3) Secret - credenciales sensibles
+#    (usa stringData para comodidad; en cluster quedan como base64)
+# ===========================================
+apiVersion: v1
+kind: Secret
+metadata:
+  name: coordinador-workers-secrets
+  namespace: integrador
+type: Opaque
+stringData:
+  RABBITMQ_PASSWORD: "admin1234!"    # TODO: reemplazar; o usar External Secrets
+---
+# ===========================================
+# 4) Deployment del coordinador de workers
+#    - Expone HTTP en 5003 (/alive, /status, /workers)
+#    - Usa nuestro script coordinador_workers.py (imagen construida por vos)
+# ===========================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: coordinador-workers
+  namespace: integrador
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: coordinador-workers
+  template:
+    metadata:
+      labels:
+        app: coordinador-workers
+    spec:
+      containers:
+        - name: app
+          # TODO: poné tu imagen ya construida y subida al registry
+          image: docker.io/facundootero/coordinador_worker_alive:v1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5003  # expone API del coordinador
+          envFrom:
+            - configMapRef:
+                name: coordinador-workers-config
+            - secretRef:
+                name: coordinador-workers-secrets
+          # Probes para salud
+          livenessProbe:
+            httpGet:
+              path: /status
+              port: 5003
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /status
+              port: 5003
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+---
+# ===========================================
+# 5) Service tipo LoadBalancer interno
+#    - Entrega una IP PRIVADA para que tus MIG (workers) accedan por VPC
+#    - En GKE, esta annotation crea LB interno.
+# ===========================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: coordinador-workers
+  namespace: integrador
+  annotations:
+    cloud.google.com/load-balancer-type: "Internal"  # LB interno
+spec:
+  type: LoadBalancer
+  selector:
+    app: coordinador-workers
+  ports:
+    - name: http
+      port: 5003        # puerto expuesto en la IP del LB
+      targetPort: 5003  # puerto del contenedor
+---
