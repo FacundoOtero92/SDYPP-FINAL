@@ -66,9 +66,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: coordinador-workers-config
-            - secretRef:
-                name: coordinador-workers-secrets
-          # 👇 Añadido: GUNICORN_TMPDIR + /tmp writable
           env:
             - name: GUNICORN_TMPDIR
               value: /tmp
