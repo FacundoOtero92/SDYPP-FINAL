@@ -59,7 +59,7 @@ spec:
     spec:
       containers:
         - name: app
-          image: docker.io/facundootero/coordinador_worker_alive:v3
+          image: docker.io/facundootero/coordinador_worker_alive:v4
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5003
