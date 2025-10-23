@@ -59,19 +59,10 @@ spec:
     spec:
       containers:
         - name: app
-          image: docker.io/facundootero/coordinador_worker_alive:v1
+          image: docker.io/facundootero/coordinador_worker_alive:v2
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5003
-          envFrom:
-            - configMapRef:
-                name: coordinador-workers-config
-          env:
-            - name: GUNICORN_TMPDIR
-              value: /tmp
-          volumeMounts:
-            - name: tmp
-              mountPath: /tmp
           securityContext:
             allowPrivilegeEscalation: false
             runAsNonRoot: true
@@ -99,11 +90,7 @@ spec:
             limits:
               cpu: "250m"
               memory: "256Mi"
-      # 👇 Añadido: emptyDir para /tmp
-      volumes:
-        - name: tmp
-          emptyDir: {}
-
+    
 ---
 # ===========================================
 # 4) Service - ClusterIP (para que lo consuma NGINX)
