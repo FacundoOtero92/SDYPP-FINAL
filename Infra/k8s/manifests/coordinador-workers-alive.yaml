@@ -122,16 +122,13 @@ metadata:
     kubernetes.io/ingress.class: "nginx"
     nginx.ingress.kubernetes.io/use-regex: "true"
     nginx.ingress.kubernetes.io/rewrite-target: "/$2"
-    nginx.ingress.kubernetes.io/whitelist-source-range: "10.20.0.0/16"  # <-- tu CIDR MIG
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "10"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "10"
+    nginx.ingress.kubernetes.io/enable-real-ip: "true"
+    nginx.ingress.kubernetes.io/whitelist-source-range: "35.191.0.0/16,130.211.0.0/22,AAA.BBB.CCC.DDD/32"
 spec:
   ingressClassName: nginx
   rules:
     - http:
         paths:
-          # /workers-hb/status -> /status
-          # /workers-hb/alive  -> /alive
           - path: /workers-hb(/|$)(.*)
             pathType: ImplementationSpecific
             backend:
@@ -139,6 +136,7 @@ spec:
                 name: coordinador-workers
                 port:
                   number: 5003
+
 
 ---
 # ===========================================
