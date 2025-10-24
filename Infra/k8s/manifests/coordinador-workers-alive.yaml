@@ -123,7 +123,10 @@ metadata:
     nginx.ingress.kubernetes.io/use-regex: "true"
     nginx.ingress.kubernetes.io/rewrite-target: "/$2"
     nginx.ingress.kubernetes.io/enable-real-ip: "true"
-    nginx.ingress.kubernetes.io/whitelist-source-range: "35.191.0.0/16,130.211.0.0/22,AAA.BBB.CCC.DDD/32"
+    # timeouts para robustez:
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "30"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "30"
 spec:
   ingressClassName: nginx
   rules:
@@ -135,7 +138,7 @@ spec:
               service:
                 name: coordinador-workers
                 port:
-                  number: 5003
+                  name: http        # <--- antes tenías "number: 5003"
 
 
 ---
