@@ -103,10 +103,7 @@ spec:
             - name: RABBITMQ_USER
               value: "admin"
             - name: RABBITMQ_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: coordinador-workers-secrets
-                  key: RABBITMQ_PASSWORD
+              value: "admin1234!"
             - name: POOL_QUEUE
               value: "pool.tasks"
 
