@@ -22,10 +22,11 @@ data:
 
   # Política de autoscaling (si la usás)
   ENABLE_AUTOSCALE: "true"
-  CPU_BOOT_COUNT: "2"
+  CPU_BOOT_COUNT: "1"
   CHECK_BACKLOG_SEC: "15"
-  MIN_BACKLOG_FOR_CPU: "1"
+  MIN_BACKLOG_FOR_CPU: "2"
   ANTI_FLAP_SEC: "20"
+  
 # ---
 # # ===========================================
 # # 2) Secret - credenciales sensibles
@@ -69,6 +70,56 @@ spec:
             runAsUser: 10001
             runAsGroup: 10001
             readOnlyRootFilesystem: true
+
+          # 👇 AQUI VA EL BLOQUE ENV
+          env:
+            # --- Autoscaling ---
+            - name: ENABLE_AUTOSCALE
+              value: "true"
+            - name: CPU_BOOT_COUNT
+              value: "1"
+            - name: MIN_BACKLOG_FOR_CPU
+              value: "2"
+            - name: CHECK_BACKLOG_SEC
+              value: "15"
+            - name: ANTI_FLAP_SEC
+              value: "20"
+
+            # --- Redis (heartbeats) ---
+            - name: REDIS_HOST
+              value: "redis-integrador"
+            - name: REDIS_PORT
+              value: "6379"
+            - name: REDIS_DB
+              value: "0"
+            - name: HB_TTL_SEC
+              value: "45"
+
+            # --- RabbitMQ (backlog pool.tasks) ---
+            - name: RABBITMQ_HOST
+              value: "rabbitmq"
+            - name: RABBITMQ_PORT
+              value: "5672"
+            - name: RABBITMQ_USER
+              value: "admin"
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: coordinador-workers-secrets
+                  key: RABBITMQ_PASSWORD
+            - name: POOL_QUEUE
+              value: "pool.tasks"
+
+            # --- MIG real en GCP ---
+            - name: GCP_PROJECT
+              value: "sdypp092025"
+            - name: GCP_LOCATION        # zonal: us-central1-c | regional: us-central1
+              value: "us-central1-c"
+            - name: MIG_NAME
+              value: "worker-cpu-mig"
+            - name: MIG_SCOPE           # "zone" o "region"
+              value: "zone"
+
           livenessProbe:
             httpGet:
               path: /status
@@ -90,7 +141,7 @@ spec:
             limits:
               cpu: "250m"
               memory: "256Mi"
-    
+
 ---
 # ===========================================
 # 4) Service - ClusterIP (para que lo consuma NGINX)
