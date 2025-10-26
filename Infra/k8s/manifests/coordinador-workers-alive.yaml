@@ -40,6 +40,15 @@ data:
 # stringData:
 #   RABBITMQ_PASSWORD: "admin1234!"   # <-- CAMBIAR
 ---
+# sa-coordinador-workers.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: coordinador-workers-sa
+  namespace: integrador
+  annotations:
+    iam.gke.io/gcp-service-account: coordinador-workers-gsa@sdypp092025.iam.gserviceaccount.com
+---
 # ===========================================
 # 3) Deployment - coordinador de workers (puerto 5003)
 # ===========================================
@@ -58,6 +67,7 @@ spec:
       labels:
         app: coordinador-workers
     spec:
+      serviceAccountName: coordinador-workers-sa  
       containers:
         - name: app
           image: docker.io/facundootero/coordinador_worker_alive:v5
