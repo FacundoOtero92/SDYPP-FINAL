@@ -1,0 +1,119 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: worker-pool-sa
+  namespace: integrador
+  annotations:
+    iam.gke.io/gcp-service-account: worker-pool-gsa@sdypp092025.iam.gserviceaccount.com
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker-pool
+  namespace: integrador
+  labels:
+    app: worker-pool
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker-pool
+  template:
+    metadata:
+      labels:
+        app: worker-pool
+    spec:
+      serviceAccountName: worker-pool-sa
+      containers:
+        - name: worker-pool
+          image: docker.io/facundootero/worker_pool:v1   # <-- poné tu imagen
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5002
+          env:
+            # RabbitMQ del cluster (misma cola que consumen los otros workers)
+            - name: RABBITMQ_HOST
+              value: "rabbitmq"
+            - name: RABBITMQ_PORT
+              value: "5672"
+            - name: RABBITMQ_USER
+              value: "admin"
+            - name: RABBITMQ_PASSWORD
+              value: "admin1234!"
+            - name: RABBITMQ_VHOST
+              value: "/"
+            - name: RABBITMQ_QUEUE
+              value: "pool.tasks"
+
+            # coordinador de workers (el que ya tenés en el cluster)
+            # cambiá host:puerto si tu servicio tiene otro
+            - name: WORKER_COORD_URL
+              value: "http://coordinador-workers.integrador.svc.cluster.local:5003/alive"
+
+            # coordinador de blockchain (el que tiene /solved_task)
+            - name: BLOCKCHAIN_COORD_URL
+              value: "http://coordinador-integrador.integrador.svc.cluster.local/solved_task"
+
+            # heartbeat cada 7s
+            - name: HB_PERIOD
+              value: "7"
+
+          livenessProbe:
+            httpGet:
+              path: /alive
+              port: 5002
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+          readinessProbe:
+            httpGet:
+              path: /alive
+              port: 5002
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "250m"
+              memory: "256Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker-pool
+  namespace: integrador
+spec:
+  type: ClusterIP
+  selector:
+    app: worker-pool
+  ports:
+    - name: http
+      port: 5002
+      targetPort: 5002
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: worker-pool
+  namespace: integrador
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/rewrite-target: "/$2"
+    nginx.ingress.kubernetes.io/enable-real-ip: "true"
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /pool(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: worker-pool
+                port:
+                  name: http
