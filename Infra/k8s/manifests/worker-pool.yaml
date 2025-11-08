@@ -27,7 +27,7 @@ spec:
       serviceAccountName: worker-pool-sa
       containers:
         - name: worker-pool
-          image: docker.io/facundootero/worker_pool:v1   # <-- poné tu imagen
+          image: docker.io/facundootero/worker_pool:v2   # <-- poné tu imagen
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5002
