@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://github.com/tu-usuario/tu-repo.git
+    repoURL: https://github.com/FacundoOtero92/SDYPP-FINAL.git
     targetRevision: main
     path: Infra/k8s/manifests
   destination:
@@ -14,7 +14,7 @@ spec:
     namespace: integrador
   syncPolicy:
     automated:
-      prune: true       # <<--- acá
+      prune: true      
       selfHeal: true
     syncOptions:
     - CreateNamespace=true

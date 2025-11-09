@@ -47,7 +47,7 @@ metadata:
   name: coordinador-workers-sa
   namespace: integrador
   annotations:
-    iam.gke.io/gcp-service-account: coordinador-workers-gsa@sdypp092025.iam.gserviceaccount.com
+    iam.gke.io/gcp-service-account: coordinador-workers-gsa@sdypp122025.iam.gserviceaccount.com
 ---
 # ===========================================
 # 3) Deployment - coordinador de workers (puerto 5003)
@@ -119,7 +119,7 @@ spec:
 
             # --- MIG real en GCP ---
             - name: GCP_PROJECT
-              value: "sdypp092025"
+              value: "sdypp122025"
             - name: GCP_LOCATION        # zonal: us-central1-c | regional: us-central1
               value: "us-central1-c"
             - name: MIG_NAME
@@ -181,11 +181,7 @@ metadata:
     nginx.ingress.kubernetes.io/use-regex: "true"
     nginx.ingress.kubernetes.io/rewrite-target: "/$2"
     nginx.ingress.kubernetes.io/enable-real-ip: "true"
-    # timeouts para robustez:
-    nginx.ingress.kubernetes.io/proxy-connect-timeout: "10"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "30"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "30"
-spec:
+  spec:
   ingressClassName: nginx
   rules:
     - http:
