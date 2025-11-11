@@ -35,14 +35,14 @@ variable "create_dns_zone" {
 ############################
 # Data sources (resuelven self_links)
 ############################
-data "google_compute_network" "vpc" {
-  name = var.vpc_name
-}
+# resource "google_compute_network" "vpc" {
+#   name = var.vpc_name
+# }
 
-data "google_compute_subnetwork" "subnet" {
-  name   = var.subnet_name
-  region = var.region
-}
+#  resource "google_compute_subnetwork" "subnet" {
+#    name   = var.subnet_name
+#    region = var.region
+#  }
 
 ############################
 # IP interna estática para ingress-nginx (ILB)
@@ -51,8 +51,11 @@ resource "google_compute_address" "ingress_ilb" {
   name         = "ingress-ilb"
   region       = var.region
   address_type = "INTERNAL"
-  subnetwork   = data.google_compute_subnetwork.subnet.self_link
-  # address    = "10.0.0.50"  # opcional: si querés fijarla; si no, GCP asigna una libre
+  #  subnetwork   = google_compute_subnetwork.subnet.self_link
+    # subnetwork   = google_compute_subnetwork.subnet.self_link
+      
+  subnetwork   = google_compute_subnetwork.private.self_link
+
 }
 
 ############################
@@ -66,7 +69,12 @@ resource "google_dns_managed_zone" "svc" {
 
   private_visibility_config {
     networks {
-      network_url = data.google_compute_network.vpc.self_link
+      # network_url = data.google_compute_network.vpc.self_link
+     
+      network_url = google_compute_network.main.self_link
+
+
+
     }
   }
 }

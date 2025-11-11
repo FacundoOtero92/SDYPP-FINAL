@@ -5,7 +5,7 @@ LOG="/var/log/startup-worker-cpu.log"
 exec > >(tee -a "$LOG") 2>&1
 
 retry() {
-  local cmd="$1"; local max="${2:-5}"; local delay="${3:-6}"
+  local cmd="$1"; local max="$${2:-5}"; local delay="$${3:-6}"
   local n=0
   until bash -lc "$cmd"; do
     n=$((n+1))
@@ -26,10 +26,10 @@ if ! command -v docker >/dev/null 2>&1; then
   install -m 0755 -d /etc/apt/keyrings
   # agregar llave de Docker
   . /etc/os-release
-  curl -fsSL "https://download.docker.com/linux/${ID}/gpg" | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  curl -fsSL "https://download.docker.com/linux/$${ID}/gpg" | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
   chmod a+r /etc/apt/keyrings/docker.gpg
   echo \
-    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/${ID} \
+    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/$${ID} \
     $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
   retry "apt-get update -y" 5 8
   retry "apt-get install -y docker-ce docker-ce-cli containerd.io" 5 8
@@ -41,7 +41,7 @@ mkdir -p /opt/worker-cpu
 
 cat >/opt/worker-cpu/.env <<'ENV'
 # --- RabbitMQ ILB interno ---
-RABBITMQ_HOST=10.142.15.235
+RABBITMQ_HOST=34.148.169.104
 RABBITMQ_PORT=5672
 RABBITMQ_USER=admin
 RABBITMQ_PASSWORD=admin1234!
@@ -50,15 +50,17 @@ RABBITMQ_QUEUE=pool.tasks
 
 # --- Coordenador HTTP (por el Ingress) ---
 # usa la IP pública del Ingress o tu dominio
-COORDINATOR_URL=http://<IP_O_DOMINIO_INGRESS>/solved_task
-
+COORDINATOR_URL=http://34.148.169.104/solved_task
+HEARTBEAT_URL=http://34.148.169.104/workers-hb/alive
+WORKER_TYPE=cpu
+HEARTBEAT_PERIOD=7
+PREFETCH_COUNT=10
 # Identificador opcional del worker
-WORKER_ID=${HOSTNAME}
+WORKER_ID=$${HOSTNAME}
 ENV
 
 # -------- 3) Ejecutar contenedor --------
-IMAGE="facundootero/worker-cpu:2025-09-22"
-# si usás Docker Hub: IMAGE="tuusuario/worker-cpu:<TAG>"
+IMAGE="${worker_image}"
 
 # pull tolerante (si es primera vez puede tardar)
 retry "docker pull \"$IMAGE\"" 6 20 || true

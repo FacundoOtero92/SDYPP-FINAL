@@ -20,3 +20,20 @@ resource "google_compute_subnetwork" "private" {
     ip_cidr_range = "10.52.0.0/20"
   }
 }
+
+# # NUEVA subred para las VMs externas en us-central1 (CIDR que no se solape)
+# resource "google_compute_subnetwork" "main_uscentral1" {
+#   provider      = google.uscentral
+#   name          = "main-us-central1"
+#   region        = local.vm_region          # "us-central1"
+#   ip_cidr_range = "10.42.0.0/16"
+#   network       = google_compute_subnetwork.main_uscentral1
+# }
+
+resource "google_compute_subnetwork" "main_uscentral1" {
+  provider      = google.uscentral           # si definiste un provider alias
+  name          = "main-us-central1"
+  region        = "us-central1"
+  ip_cidr_range = "10.42.0.0/16"
+  network       = google_compute_network.main.id
+}

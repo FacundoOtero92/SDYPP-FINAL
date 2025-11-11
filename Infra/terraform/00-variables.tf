@@ -18,7 +18,7 @@ variable "credentials_file_path" {
 variable "project_id" {
 
   type    = string
-  default = "sdypp092025"
+  default = "sdypp122025"
 
 }
 
@@ -140,20 +140,24 @@ variable "startup_worker_cpu" {
 # ---- Imagen Docker en Docker Hub (pública) ----
 variable "worker_image" {
   type    = string
-  default = "docker.io/facundootero/worker-cpu:27-09-2025v2"
+  default = "docker.io/facundootero/worker_cpu:v3"
 }
 
 # ---- ENV que tu worker necesita (ajustalas a tu script) ----
 variable "worker_env" {
   type = map(string)
   default = {
-    RABBITMQ_HOST     ="34.148.169.104"   # o IP interna
+    RABBITMQ_HOST     ="34.148.110.26"   # o IP interna
   RABBITMQ_PORT     = "5672"
   RABBITMQ_USER     = "admin"
   RABBITMQ_PASSWORD = "admin1234!"
   RABBITMQ_VHOST    = "/"
   RABBITMQ_QUEUE    = "pool.tasks"             # <- cola a consumir
-  COORDINATOR_URL = "http://34.148.169.104/solved_task"
+  COORDINATOR_URL = "http://34.148.110.26/solved_task"
+  HEARTBEAT_URL="http://34.148.110.26/workers-hb/alive"
+  WORKER_TYPE="cpu"
+  HEARTBEAT_PERIOD="7"
+  PREFETCH_COUNT="10"
   }
 }
 

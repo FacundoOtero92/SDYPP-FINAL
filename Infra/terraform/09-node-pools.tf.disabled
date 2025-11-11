@@ -1,7 +1,9 @@
 resource "google_service_account" "kubernetes" {
   account_id = "kubernetes"
 }
-
+locals {
+  enable_standard_cluster = true  # o false
+}
 resource "google_container_node_pool" "cpu_workers" {
    for_each = local.enable_standard_cluster ? { "cpu" = true } : {}
   
