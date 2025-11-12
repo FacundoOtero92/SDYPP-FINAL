@@ -1,31 +1,31 @@
----
+
 # ===========================================
 # 1) ConfigMap - variables NO secretas
 # ===========================================
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: coordinador-workers-config
-  namespace: integrador
-data:
-  # Redis para heartbeats
-  REDIS_HOST: "redis-integrador"
-  REDIS_PORT: "6379"
-  REDIS_DB: "0"
-  HB_TTL_SEC: "45"
+# apiVersion: v1
+# kind: ConfigMap
+# metadata:
+#   name: coordinador-workers-config
+#   namespace: integrador
+# data:
+#   # Redis para heartbeats
+#   REDIS_HOST: "redis-integrador"
+#   REDIS_PORT: "6379"
+#   REDIS_DB: "0"
+#   HB_TTL_SEC: "45"
 
-  # RabbitMQ para medir backlog (opcional autoscaling)
-  RABBITMQ_HOST: "rabbitmq"
-  RABBITMQ_PORT: "5672"
-  RABBITMQ_USER: "admin"
-  POOL_QUEUE: "pool.tasks"
+#   # RabbitMQ para medir backlog (opcional autoscaling)
+#   RABBITMQ_HOST: "rabbitmq"
+#   RABBITMQ_PORT: "5672"
+#   RABBITMQ_USER: "admin"
+#   POOL_QUEUE: "pool.tasks"
 
-  # Política de autoscaling (si la usás)
-  ENABLE_AUTOSCALE: "true"
-  CPU_BOOT_COUNT: "1"
-  CHECK_BACKLOG_SEC: "15"
-  MIN_BACKLOG_FOR_CPU: "2"
-  ANTI_FLAP_SEC: "20"
+#   # Política de autoscaling (si la usás)
+#   ENABLE_AUTOSCALE: "true"
+#   CPU_BOOT_COUNT: "1"
+#   CHECK_BACKLOG_SEC: "15"
+#   MIN_BACKLOG_FOR_CPU: "2"
+#   ANTI_FLAP_SEC: "20"
   
 # ---
 # # ===========================================
@@ -181,7 +181,7 @@ metadata:
     nginx.ingress.kubernetes.io/use-regex: "true"
     nginx.ingress.kubernetes.io/rewrite-target: "/$2"
     nginx.ingress.kubernetes.io/enable-real-ip: "true"
-  spec:
+spec:
   ingressClassName: nginx
   rules:
     - http:

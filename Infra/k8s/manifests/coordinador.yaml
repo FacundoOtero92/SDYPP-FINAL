@@ -58,10 +58,10 @@ spec:
             httpGet:
               path: /alive
               port: 5000
-            initialDelaySeconds: 30
+            initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 2
-            failureThreshold: 3
+            failureThreshold: 30
           readinessProbe:
             httpGet:
               path: /status
@@ -71,8 +71,12 @@ spec:
             timeoutSeconds: 2
             failureThreshold: 12   
           resources:
-            requests: { cpu: "100m", memory: "128Mi" }
-            limits:   { cpu: "200m", memory: "256Mi" }
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
 ---
 apiVersion: v1
 kind: Service
