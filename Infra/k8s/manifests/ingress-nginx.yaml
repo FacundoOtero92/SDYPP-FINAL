@@ -26,7 +26,6 @@ rules:
   - apiGroups: [""]
     resources: ["events"]
     verbs: ["create", "patch"]
-  # 👇 agregado: permisos para IngressClass
   - apiGroups: ["networking.k8s.io"]
     resources: ["ingressclasses"]
     verbs: ["get", "list", "watch"]
@@ -74,6 +73,7 @@ spec:
             - /nginx-ingress-controller
             - --election-id=ingress-controller-leader
             - --ingress-class=nginx
+            - --publish-service=ingress-nginx/ingress-nginx-controller   # 👈 para que ponga la IP en los ingress
           ports:
             - name: http
               containerPort: 80
@@ -88,11 +88,10 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-          # 👇 agregado: límites y requests livianos para que entre en el nodo
           resources:
             requests:
-              cpu: "50m"
-              memory: "96Mi"
+              cpu: "20m"
+              memory: "64Mi"
             limits:
               cpu: "200m"
               memory: "256Mi"
