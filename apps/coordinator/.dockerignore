@@ -6,7 +6,7 @@
 venv
 .venv
 .env
-node_modules
+**/node_modules
 ../../
 */infra/
 */k8s/

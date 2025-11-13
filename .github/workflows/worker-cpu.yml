@@ -44,7 +44,7 @@ jobs:
           key: ${{ secrets.VM_SSH_KEY }}
           script: |
             set -e
-            IMAGE="docker.io/${{ secrets.DOCKER_USERNAME }}/worker-cpu:latest"
+            IMAGE="docker.io/${{ secrets.DOCKER_USERNAME }}/worker_cpu:v7"
             sudo docker pull "$IMAGE"
             sudo docker rm -f worker-cpu || true
             sudo docker run -d --name worker-cpu --restart unless-stopped \

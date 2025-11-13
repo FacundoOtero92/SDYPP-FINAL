@@ -32,7 +32,7 @@ jobs:
       TF_VAR_create_dns_zone: "true"   # ponelo en "false" si NO querés que TF administre la zona
       TF_VAR_zone:         us-east1-c
       TF_VAR_pool_size:    "2"
-      TF_VAR_worker_image: docker.io/facundootero/worker-cpu:latest
+      TF_VAR_worker_image: docker.io/facundootero/worker_cpu:v7
 
     steps:
       - uses: actions/checkout@v4
@@ -55,7 +55,7 @@ jobs:
 
       - name: Clear stale state lock (best-effort)
         run: |
-          gcloud storage rm gs://bucket_estados_tf/infra/terraform/state/default.tflock || true
+          gcloud storage rm gs://bucket_estados/infra/terraform/state/default.tflock || true
 
       - name: Terraform init (state remoto; no migrar)
         env:

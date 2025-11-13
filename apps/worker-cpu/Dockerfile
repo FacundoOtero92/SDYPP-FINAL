@@ -13,12 +13,12 @@ COPY worker_cpu.py .
 
 # Vars overridable en runtime
 ENV PYTHONUNBUFFERED=1 \
-    RABBITMQ_HOST=34.148.169.104 \
+    RABBITMQ_HOST=35.231.169.162 \
     RABBITMQ_PORT=5672 \
     RABBITMQ_USER=admin \
     RABBITMQ_PASSWORD=admin1234! \
     RABBITMQ_VHOST=/ \
     RABBITMQ_QUEUE=pool.tasks \
-    COORDINATOR_URL=http://34.148.169.104/solved_task
+    COORDINATOR_URL=http://35.231.169.162/solved_task
 
 CMD ["python","-u","worker_cpu.py"]

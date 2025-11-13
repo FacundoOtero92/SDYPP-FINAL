@@ -20,4 +20,4 @@ COPY . .
 ENV PYTHONUNBUFFERED=1
 
 # Ejecutar la aplicación
-CMD ["python", "coordinator.py"]
+CMD ["python","-u", "coordinator.py"]

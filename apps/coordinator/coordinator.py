@@ -13,7 +13,7 @@ from pika.exceptions import AMQPConnectionError, ChannelWrongStateError, StreamL
 app = Flask(__name__)
 @app.get("/alive")
 def alive():
-    return "ok", 200
+    return "ok", 200    
 # ========================
 # VARIABLES
 # =========================
@@ -24,14 +24,14 @@ hostRabbit = 'rabbitmq'
 queueNameTx   = 'QueueTransactions'  # cola de transacciones entrantes
 exchangeBlock = 'ExchangeBlock'      # se mantiene declarado por compatibilidad
 
-#  NUEVO: Inbox del worker-pool ( -> pool)
-POOL_EXCHANGE = '.inbox'  # exchange (direct)
+#  NUEVO: Inbox del worker-pool (coordinator -> pool)
+POOL_EXCHANGE = 'coordinator.inbox'  # exchange (direct)
 POOL_QUEUE    = 'pool.tasks'         # queue exclusiva del pool
 POOL_RK       = 'tasks'              # routing key para la inbox
 
 timer = 15
 datosBucket = []
-bucketName = 'bucket_integrador_final092025'
+bucketName = 'bucket_final2025'
 credentialPath = 'credentials.json'
 
 
@@ -75,10 +75,10 @@ def queueConnect():
             connection = pika.BlockingConnection(params)
             channel = connection.channel()
             # Declaraciones (idempotentes)
-            channel.queue_declare(queue=queueNameTx, durable=True, arguments={"x-queue-type": "quorum"})
+            channel.queue_declare(queue=queueNameTx, durable=True)
             channel.exchange_declare(exchange=exchangeBlock, exchange_type='topic', durable=True)
             channel.exchange_declare(exchange=POOL_EXCHANGE, exchange_type='direct', durable=True)
-            channel.queue_declare(queue=POOL_QUEUE, durable=True, arguments={"x-queue-type": "quorum"})
+            channel.queue_declare(queue=POOL_QUEUE, durable=True)
             channel.queue_bind(exchange=POOL_EXCHANGE, queue=POOL_QUEUE, routing_key=POOL_RK)
             print('[x] Conectado a RabbitMQ', flush=True)
             return connection, channel
@@ -175,7 +175,7 @@ def descargarBlock(bucket, blockId):
     return block
 
 
- # =========================
+# =========================
 # Endpoints Flask
 # =========================
 @app.route('/transaction', methods=['POST'])
@@ -218,7 +218,12 @@ def receive_solved_task():
     bucket = bucketConnect(bucketName)
     block = descargarBlock(bucket, data['blockId'])
 
-    dataHash = data['result'] + block['baseStringChain'] + block['blockchainContent']
+    # dataHash = data['result'] + block['baseStringChain'] + block['blockchainContent']
+    nonce   = str(data.get('result', ''))
+    base    = str(block.get('baseStringChain', ''))
+    content = str(block.get('blockchainContent') or "")   # valor por defecto seguro
+    dataHash = nonce + base + content
+
     hashResult = calculateHash(dataHash)
     timestamp = time.time()
     print(f"[x] Hash recibido:  {data.get('hash')}", flush=True)
@@ -245,8 +250,8 @@ def receive_solved_task():
             print(f"[x] Hash del último bloque: {ultimoBloque['hash']}", flush=True)
         else:
             print('[x] Bloque génesis', flush=True)
-            newBlock['hashPrevio'] = None
-
+            newBlock['hashPrevio'] = ""
+       
         # Armar bloque final
         newBlock['blockId']          = data['blockId']
         newBlock['hash']             = data['hash']
@@ -255,7 +260,7 @@ def receive_solved_task():
         newBlock['baseStringChain']  = block['baseStringChain']
         newBlock['timestamp']        = timestamp
         newBlock['nonce']            = data['result']
-        newBlock['blockchainContent'] = newBlock['hashPrevio']
+        newBlock['blockchainContent'] =newBlock['hashPrevio']
         print(f"[DEBUG] Guardando bloque validado en Redis", flush=True)
         postBlock(newBlock)
         print('[x] Bloque validado » Agregado a la blockchain', flush=True)

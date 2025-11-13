@@ -1,8 +1,24 @@
+
 FROM python:3.11-slim
+
+
+ENV PYTHONUNBUFFERED=1
+
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+
 WORKDIR /app
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
-COPY requirements.txt ./
+
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-COPY worker_pool.py ./
-EXPOSE 5001
+
+COPY worker_pool.py /app/
+
+
+
+EXPOSE 5002
+
 CMD ["python", "worker_pool.py"]
