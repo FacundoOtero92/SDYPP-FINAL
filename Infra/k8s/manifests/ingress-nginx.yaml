@@ -9,31 +9,49 @@ metadata:
   name: ingress-nginx
   namespace: ingress-nginx
 ---
+# ===== Cluster-scope: permisos globales necesarios =====
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: ingress-nginx
 rules:
   - apiGroups: [""]
-    resources:
-      - configmaps
-      - endpoints
-      - nodes
-      - pods
-      - secrets
-      - services
-    verbs: ["list", "watch", "get"]
+    resources: [configmaps, endpoints, nodes, pods, secrets, services, namespaces]
+    verbs: [get, list, watch]
   - apiGroups: [""]
-    resources: ["events"]
-    verbs: ["create", "patch"]
+    resources: [events]
+    verbs: [create, patch]
   - apiGroups: ["networking.k8s.io"]
-    resources: ["ingressclasses"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: ["networking.k8s.io", "extensions"]
+    resources: [ingressclasses]
+    verbs: [get, list, watch]
+  - apiGroups: ["networking.k8s.io","extensions"]
+    resources: [ingresses, ingresses/status]
+    verbs: [get, list, watch, update]
+  # Descubrimiento de backends en K8s 1.33+: EndpointSlice
+  - apiGroups: ["discovery.k8s.io"]
+    resources: [endpointslices]
+    verbs: [get, list, watch]
+  # Lectura de leases a nivel cluster (complementa al Role namespaced)
+  - apiGroups: ["coordination.k8s.io"]
+    resources: [leases]
+    verbs: [get, list, watch]
+  - apiGroups:
+    - discovery.k8s.io
     resources:
-      - ingresses
-      - ingresses/status
-    verbs: ["get", "list", "watch", "update"]
+    - endpointslices
+    verbs:
+    - get
+    - list
+    - watch
+  - apiGroups:
+    - coordination.k8s.io
+    resources:
+    - leases
+    verbs:
+    - get
+    - list
+    - watch
+    
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -47,6 +65,42 @@ subjects:
   - kind: ServiceAccount
     name: ingress-nginx
     namespace: ingress-nginx
+---
+# ===== Namespace-scope: leader election + cm/events locales =====
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: ingress-nginx
+  namespace: ingress-nginx
+rules:
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get","list","watch","create","update","patch","delete"]
+  - apiGroups: [""]
+    resources: ["configmaps","events"]
+    verbs: ["get","list","watch","create","update","patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: ingress-nginx
+  namespace: ingress-nginx
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: ingress-nginx
+subjects:
+  - kind: ServiceAccount
+    name: ingress-nginx
+    namespace: ingress-nginx
+---
+# IngressClass "nginx" (coincide con tus manifests)
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: nginx
+spec:
+  controller: k8s.io/ingress-nginx
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -73,7 +127,7 @@ spec:
             - /nginx-ingress-controller
             - --election-id=ingress-controller-leader
             - --ingress-class=nginx
-            - --publish-service=ingress-nginx/ingress-nginx-controller   # 👈 para que ponga la IP en los ingress
+            - --publish-service=ingress-nginx/ingress-nginx-controller
           ports:
             - name: http
               containerPort: 80
@@ -90,8 +144,8 @@ spec:
                   fieldPath: metadata.namespace
           resources:
             requests:
-              cpu: "20m"
-              memory: "64Mi"
+              cpu: "50m"
+              memory: "96Mi"
             limits:
               cpu: "200m"
               memory: "256Mi"
