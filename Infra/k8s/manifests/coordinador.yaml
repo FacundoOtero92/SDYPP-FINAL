@@ -3,6 +3,8 @@ kind: ServiceAccount
 metadata:
   name: coordinator-ksa
   namespace: integrador
+  annotations:
+    iam.gke.io/gcp-service-account: coordinator-bucket-sa@sdypp122025.iam.gserviceaccount.com
 ---
 apiVersion: apps/v1
 kind: Deployment
