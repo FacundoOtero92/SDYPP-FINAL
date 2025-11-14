@@ -81,7 +81,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: coordinador-integrador
+  name: coordinador
   namespace: integrador
 spec:
   type: ClusterIP
