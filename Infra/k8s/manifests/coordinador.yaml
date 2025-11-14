@@ -110,6 +110,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: coordinador-integrador
+                name: coordinador
                 port:
                   number: 80
