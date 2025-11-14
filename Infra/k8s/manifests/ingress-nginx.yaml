@@ -146,11 +146,12 @@ spec:
                   fieldPath: metadata.namespace
           resources:
             requests:
-              cpu: "200m"
-              memory: "256Mi"
+              cpu: "50m"
+              memory: "96Mi"
             limits:
-              cpu: "200m"
-              memory: "256Mi"
+              cpu: "50m"
+              memory: "96Mi"
+
 ---
 apiVersion: v1
 kind: Service
