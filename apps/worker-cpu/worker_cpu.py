@@ -142,7 +142,7 @@ COORDINATOR_URL = os.getenv("COORDINATOR_URL","http://35.231.169.162/solved_task
 WORKER_TYPE     = os.getenv("WORKER_TYPE","cpu")          # "cpu" o "gpu"
 WORKER_ID       = os.getenv("WORKER_ID") or socket.gethostname()
 HEARTBEAT_PERIOD= int(os.getenv("HEARTBEAT_PERIOD","7"))  # segundos entre heartbeats
-
+HEARTBEAT_URL   = os.getenv("HEARTBEAT_URL","http://35.231.169.162/workers-hb/alive")
 def pika_params():
     return pika.ConnectionParameters(
         host=HOST, port=PORT, virtual_host=VHOST,
