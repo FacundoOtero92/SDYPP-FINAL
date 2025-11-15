@@ -53,8 +53,8 @@ kind: Service
 metadata:
   name: rabbitmq
   namespace: integrador
-  annotations:
-    cloud.google.com/load-balancer-type: "Internal"
+  # annotations:
+    # cloud.google.com/load-balancer-type: "Internal"
 spec:                          # <-- al nivel de metadata, NO dentro
   type: LoadBalancer
   selector:
