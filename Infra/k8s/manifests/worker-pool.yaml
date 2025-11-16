@@ -66,3 +66,23 @@ spec:
       targetPort: 5002
       protocol: TCP
   type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: worker-pool
+  namespace: apps
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+          - path: /worker-pool
+            pathType: Prefix
+            backend:
+              service:
+                name: worker-pool
+                port:
+                  number: 5002
