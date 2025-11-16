@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: redis-integrador
-  namespace: integrador
+  namespace: servicios #integrador
 spec:
   selector:
     app: redis-integrador
@@ -14,7 +14,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: redis-integrador
-  namespace: integrador
+  namespace: servicios #integrador
   labels: { app: redis-integrador }
 spec:
   replicas: 1
