@@ -2,8 +2,9 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: worker-pool
-  namespace: apps        
-  replicas: 1            
+  namespace: apps
+spec:
+  replicas: 1
   selector:
     matchLabels:
       app: worker-pool
@@ -14,12 +15,11 @@ metadata:
     spec:
       containers:
         - name: worker-pool
-          image: docker.io/facundootero/worker_pool:v3  
+          image: docker.io/facundootero/worker_pool:v3
           imagePullPolicy: Always
           env:
-            
             - name: RABBITMQ_HOST
-              value: "rabbitmq.servicios"          
+              value: "rabbitmq.servicios"
             - name: RABBITMQ_PORT
               value: "5672"
             - name: RABBITMQ_USER
@@ -36,21 +36,14 @@ metadata:
               value: "/"
             - name: RABBITMQ_QUEUE
               value: "pool.tasks"
-
-            # coordinador de workers 
             - name: WORKER_COORD_URL
               value: "http://workers-coordinator.apps.svc.cluster.local:5003/alive"
-
-          
             - name: BLOCKCHAIN_COORD_URL
               value: "http://coordinator.apps.svc.cluster.local:5000/solved_task"
-
-            # periodo de heartbeat del pool
             - name: HB_PERIOD
               value: "7"
-
           ports:
-            - containerPort: 5002  
+            - containerPort: 5002
           resources:
             requests:
               cpu: "100m"
@@ -58,7 +51,6 @@ metadata:
             limits:
               cpu: "500m"
               memory: "512Mi"
-
 ---
 apiVersion: v1
 kind: Service
