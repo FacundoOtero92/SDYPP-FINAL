@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: worker-pool
-          image: docker.io/facundootero/worker_pool:v9
+          image: docker.io/facundootero/worker_pool:v11
           imagePullPolicy: Always
           env:
             - name: RABBITMQ_HOST
@@ -39,7 +39,7 @@ spec:
             - name: WORKER_COORD_URL
               value: "http://coordinador-workers:5003/alive"
             - name: BLOCKCHAIN_COORD_URL
-              value: "http://coordinador:5000/solved_task"
+              value: "http://coordinador/solved_task"
             - name: HB_PERIOD
               value: "7"
           ports:
