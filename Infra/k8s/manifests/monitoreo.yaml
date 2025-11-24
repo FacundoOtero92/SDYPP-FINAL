@@ -126,7 +126,7 @@ metadata:
   namespace: monitoreo
   annotations:
     kubernetes.io/ingress.class: "nginx"
-  spec:
+spec:
   ingressClassName: nginx
   rules:
     - http:
