@@ -1,193 +1,193 @@
-##prometheus
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: prometheus
-  namespace: monitoreo
-  labels:
-    app: prometheus
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: prometheus
-  template:
-    metadata:
-      labels:
-        app: prometheus
-    spec:
-      containers:
-        - name: prometheus
-          image: prom/prometheus:v2.54.0 
-          args:
-            - "--config.file=/etc/prometheus/prometheus.yml"
-            - "--storage.tsdb.path=/prometheus"
-            - "--web.enable-lifecycle"
-          ports:
-            - name: http
-              containerPort: 9090
-          volumeMounts:
-            - name: config
-              mountPath: /etc/prometheus
-            - name: data
-              mountPath: /prometheus
-          resources:
-            requests:
-              cpu: "10m"
-              memory: "64Mi"
-            limits:
-              cpu: "10m"
-              memory: "64Mi"
-      volumes:
-        - name: config
-          configMap:
-            name: prometheus-config
-        - name: data
-          emptyDir: {}  
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: prometheus
-  namespace: monitoreo
-  labels:
-    app: prometheus
-spec:
-  type: ClusterIP
-  selector:
-    app: prometheus
-  ports:
-    - name: http
-      port: 9090
-      targetPort: 9090
----
-## grafana
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: grafana
-  namespace: monitoreo
-  labels:
-    app: grafana
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: grafana
-  template:
-    metadata:
-      labels:
-        app: grafana
-    spec:
-      containers:
-      - name: grafana
-        image: grafana/grafana:10.4.2
-        ports:
-        - name: http
-          containerPort: 3000
-        env:
-        - name: GF_SECURITY_ADMIN_USER
-          value: "admin"
-        - name: GF_SECURITY_ADMIN_PASSWORD
-          value: "admin"
-        # IMPORTANTE: servido bajo /grafana, usando placeholders
-        - name: GF_SERVER_ROOT_URL
-          value: "http://35.231.169.162/grafana/"
-        - name: GF_SERVER_SERVE_FROM_SUB_PATH
-          value: "true"
-        resources:
-          requests:
-            cpu: "20m"
-            memory: "64Mi"
-          limits:
-            cpu: "100m"
-            memory: "256Mi"
+# ##prometheus
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: prometheus
+#   namespace: monitoreo
+#   labels:
+#     app: prometheus
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: prometheus
+#   template:
+#     metadata:
+#       labels:
+#         app: prometheus
+#     spec:
+#       containers:
+#         - name: prometheus
+#           image: prom/prometheus:v2.54.0 
+#           args:
+#             - "--config.file=/etc/prometheus/prometheus.yml"
+#             - "--storage.tsdb.path=/prometheus"
+#             - "--web.enable-lifecycle"
+#           ports:
+#             - name: http
+#               containerPort: 9090
+#           volumeMounts:
+#             - name: config
+#               mountPath: /etc/prometheus
+#             - name: data
+#               mountPath: /prometheus
+#           resources:
+#             requests:
+#               cpu: "10m"
+#               memory: "64Mi"
+#             limits:
+#               cpu: "10m"
+#               memory: "64Mi"
+#       volumes:
+#         - name: config
+#           configMap:
+#             name: prometheus-config
+#         - name: data
+#           emptyDir: {}  
+# ---
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: prometheus
+#   namespace: monitoreo
+#   labels:
+#     app: prometheus
+# spec:
+#   type: ClusterIP
+#   selector:
+#     app: prometheus
+#   ports:
+#     - name: http
+#       port: 9090
+#       targetPort: 9090
+# ---
+# ## grafana
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: grafana
+#   namespace: monitoreo
+#   labels:
+#     app: grafana
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: grafana
+#   template:
+#     metadata:
+#       labels:
+#         app: grafana
+#     spec:
+#       containers:
+#       - name: grafana
+#         image: grafana/grafana:10.4.2
+#         ports:
+#         - name: http
+#           containerPort: 3000
+#         env:
+#         - name: GF_SECURITY_ADMIN_USER
+#           value: "admin"
+#         - name: GF_SECURITY_ADMIN_PASSWORD
+#           value: "admin"
+#         # IMPORTANTE: servido bajo /grafana, usando placeholders
+#         - name: GF_SERVER_ROOT_URL
+#           value: "http://35.231.169.162/grafana/"
+#         - name: GF_SERVER_SERVE_FROM_SUB_PATH
+#           value: "true"
+#         resources:
+#           requests:
+#             cpu: "20m"
+#             memory: "64Mi"
+#           limits:
+#             cpu: "100m"
+#             memory: "256Mi"
 
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: grafana
-  namespace: monitoreo
-  labels:
-    app: grafana
-spec:
-  type: ClusterIP
-  selector:
-    app: grafana
-  ports:
-    - name: http
-      port: 3000
-      targetPort: 3000
+# ---
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: grafana
+#   namespace: monitoreo
+#   labels:
+#     app: grafana
+# spec:
+#   type: ClusterIP
+#   selector:
+#     app: grafana
+#   ports:
+#     - name: http
+#       port: 3000
+#       targetPort: 3000
 
----
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: grafana
-  namespace: monitoreo
-  annotations:
-    kubernetes.io/ingress.class: "nginx"
-spec:
-  ingressClassName: nginx
-  rules:
-    - http:
-        paths:
-          - path: /grafana
-            pathType: Prefix
-            backend:
-              service:
-                name: grafana
-                port:
-                  number: 3000
+# ---
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: grafana
+#   namespace: monitoreo
+#   annotations:
+#     kubernetes.io/ingress.class: "nginx"
+# spec:
+#   ingressClassName: nginx
+#   rules:
+#     - http:
+#         paths:
+#           - path: /grafana
+#             pathType: Prefix
+#             backend:
+#               service:
+#                 name: grafana
+#                 port:
+#                   number: 3000
 
 
 
----
-## pushgateway
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: pushgateway
-  namespace: monitoreo
-  labels:
-    app: pushgateway
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: pushgateway
-  template:
-    metadata:
-      labels:
-        app: pushgateway
-    spec:
-      containers:
-        - name: pushgateway
-          image: prom/pushgateway:v1.9.0
-          ports:
-            - name: http
-              containerPort: 9091
-          resources:
-            requests:
-              cpu: "10m"
-              memory: "32Mi"
-            limits:
-              cpu: "50m"
-              memory: "64Mi"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: pushgateway
-  namespace: monitoreo
-  labels:
-    app: pushgateway
-spec:
-  type: LoadBalancer
-  selector:
-    app: pushgateway
-  ports:
-    - name: http
-      port: 9091
-      targetPort: 9091
+# ---
+# ## pushgateway
+# apiVersion: apps/v1
+# kind: Deployment
+# metadata:
+#   name: pushgateway
+#   namespace: monitoreo
+#   labels:
+#     app: pushgateway
+# spec:
+#   replicas: 1
+#   selector:
+#     matchLabels:
+#       app: pushgateway
+#   template:
+#     metadata:
+#       labels:
+#         app: pushgateway
+#     spec:
+#       containers:
+#         - name: pushgateway
+#           image: prom/pushgateway:v1.9.0
+#           ports:
+#             - name: http
+#               containerPort: 9091
+#           resources:
+#             requests:
+#               cpu: "10m"
+#               memory: "32Mi"
+#             limits:
+#               cpu: "50m"
+#               memory: "64Mi"
+# ---
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: pushgateway
+#   namespace: monitoreo
+#   labels:
+#     app: pushgateway
+# spec:
+#   type: LoadBalancer
+#   selector:
+#     app: pushgateway
+#   ports:
+#     - name: http
+#       port: 9091
+#       targetPort: 9091
