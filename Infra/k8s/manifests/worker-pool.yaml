@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: worker-pool
-          image: docker.io/facundootero/worker_pool:v12
+          image: docker.io/facundootero/worker_pool:v15
           imagePullPolicy: Always
           env:
             - name: RABBITMQ_HOST
