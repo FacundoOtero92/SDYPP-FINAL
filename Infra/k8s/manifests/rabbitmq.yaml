@@ -1,9 +1,39 @@
-apiVersion: apps/v1
-kind: Deployment
+
+# Service de RabbitMQ 
+
+apiVersion: v1
+kind: Service
 metadata:
   name: rabbitmq
-  namespace: servicios #integrador
+  namespace: servicios # integrador
+  labels:
+    app: rabbitmq
 spec:
+  type: LoadBalancer        
+  selector:
+    app: rabbitmq
+  ports:
+    - name: amqp
+      port: 5672
+      targetPort: 5672
+      protocol: TCP
+    - name: management
+      port: 15672
+      targetPort: 15672
+      protocol: TCP
+---
+
+# StatefulSet de RabbitMQ
+
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: rabbitmq
+  namespace: servicios
+  labels:
+    app: rabbitmq
+spec:
+  serviceName: rabbitmq
   replicas: 1
   selector:
     matchLabels:
@@ -13,6 +43,10 @@ spec:
       labels:
         app: rabbitmq
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
       containers:
         - name: rabbitmq
           image: rabbitmq:3.13-management
@@ -45,35 +79,32 @@ spec:
             timeoutSeconds: 5
             failureThreshold: 6
           resources:
-            requests: { cpu: "50m",  memory: "64Mi" }
-            limits:   { cpu: "300m", memory: "256Mi" }
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "300m"
+              memory: "256Mi"
+          volumeMounts:
+            - name: rabbitmq-data
+              mountPath: /var/lib/rabbitmq
+  volumeClaimTemplates:
+    - metadata:
+        name: rabbitmq-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 2Gi
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: rabbitmq
-  namespace: servicios #integrador
-  # annotations:
-    # cloud.google.com/load-balancer-type: "Internal"
-spec:                          # <-- al nivel de metadata, NO dentro
-  type: LoadBalancer
-  selector:
-    app: rabbitmq
-  ports:
-    - name: amqp
-      port: 5672
-      targetPort: 5672
-      protocol: TCP
-    - name: management
-      port: 15672
-      targetPort: 15672
-      protocol: TCP
----
+
+# Ingress para la UI
+
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: rabbitmq-ui
-  namespace: servicios #integrador
+  namespace: servicios # integrador
   annotations:
     kubernetes.io/ingress.class: "nginx"
 spec:
@@ -85,6 +116,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: rabbitmq       # <-- apuntar al Service correcto
+                name: rabbitmq
                 port:
                   number: 15672
