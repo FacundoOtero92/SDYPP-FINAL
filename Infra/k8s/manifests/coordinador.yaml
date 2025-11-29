@@ -29,7 +29,7 @@ spec:
       serviceAccountName: coordinator-ksa
       containers:
         - name: coordinator
-          image: docker.io/facundootero/coordinator:v18
+          image: docker.io/facundootero/coordinator:v19
           imagePullPolicy: Always
           ports:
             - name: http
