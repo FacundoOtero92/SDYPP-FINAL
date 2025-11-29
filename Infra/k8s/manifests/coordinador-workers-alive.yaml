@@ -70,7 +70,7 @@ spec:
       serviceAccountName: coordinador-workers-sa  
       containers:
         - name: app
-          image: docker.io/facundootero/coordinador_worker_alive:v11
+          image: docker.io/facundootero/coordinador_worker_alive:v12
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5003
@@ -81,9 +81,9 @@ spec:
             runAsGroup: 10001
             readOnlyRootFilesystem: true
 
-          # 👇 AQUI VA EL BLOQUE ENV
+          
           env:
-            # --- Autoscaling ---
+            #  Autoscaling 
             - name: ENABLE_AUTOSCALE
               value: "true"
             - name: CPU_BOOT_COUNT
@@ -94,8 +94,17 @@ spec:
               value: "15"
             - name: ANTI_FLAP_SEC
               value: "20"
+            - name: TAREAS_POR_CPU
+              value: "5"                            # cuántas tareas 'aguanta' una CPU
+            - name: MAX_REPLICAS_CPU
+              value: "10"                           # tope de instancias en el MIG
+            - name: MIN_CPU_SI_HAY_BACKLOG
+              value: "1"                            # mínimo de CPUs si backlog > 0
 
-            # --- Redis (heartbeats) ---
+  
+
+
+            #  Redis heartbeats
             - name: REDIS_HOST
               value: "redis-integrador.servicios"
             - name: REDIS_PORT
@@ -105,7 +114,7 @@ spec:
             - name: HB_TTL_SEC
               value: "45"
 
-            # --- RabbitMQ (backlog pool.tasks) ---
+            #  RabbitMQ (backlog pool.tasks)
             - name: RABBITMQ_HOST
               value: "rabbitmq.servicios"
             - name: RABBITMQ_PORT
@@ -117,14 +126,14 @@ spec:
             - name: POOL_QUEUE
               value: "pool.tasks"
 
-            # --- MIG real en GCP ---
+            #  MIG real en GCP 
             - name: GCP_PROJECT
               value: "sdypp122025"
-            - name: GCP_LOCATION        # zonal: us-central1-c | regional: us-central1
+            - name: GCP_LOCATION        
               value: "us-central1-c"
             - name: MIG_NAME
               value: "worker-cpu-mig"
-            - name: MIG_SCOPE           # "zone" o "region"
+            - name: MIG_SCOPE           
               value: "zone"
 
           livenessProbe:
@@ -150,9 +159,9 @@ spec:
               memory: "256Mi"
 
 ---
-# ===========================================
-# 4) Service - ClusterIP (para que lo consuma NGINX)
-# ===========================================
+
+# Service - ClusterIP (para que lo consuma NGINX)
+
 apiVersion: v1
 kind: Service
 metadata:
@@ -167,10 +176,9 @@ spec:
       port: 5003
       targetPort: 5003
 ---
-# ===========================================
-# 5) Ingress NGINX - expone /workers-hb/* hacia el Service
-#    (whitelist del CIDR del MIG para que sólo entren tus workers)
-# ===========================================
+
+# Ingress NGINX - expone /workers-hb/* hacia el Service
+   
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -192,14 +200,13 @@ spec:
               service:
                 name: coordinador-workers
                 port:
-                  name: http        # <--- antes tenías "number: 5003"
+                  name: http       
 
 
 ---
-# ===========================================
-# 6) (Opcional) NetworkPolicy: permitir sólo tráfico desde el Ingress
-#    - Ajustá "ingress-nginx" si tu controller tiene otro namespace/label
-# ===========================================
+
+#  NetworkPolicy: permitir sólo tráfico desde el Ingress
+
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
@@ -215,7 +222,7 @@ spec:
     - from:
         - namespaceSelector:
             matchLabels:
-              kubernetes.io/metadata.name: ingress-nginx   # <-- ns del Ingress Controller
+              kubernetes.io/metadata.name: ingress-nginx   
       ports:
         - protocol: TCP
           port: 5003
