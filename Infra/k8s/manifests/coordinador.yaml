@@ -29,7 +29,7 @@ spec:
       serviceAccountName: coordinator-ksa
       containers:
         - name: coordinator
-          image: docker.io/facundootero/coordinator:v17
+          image: docker.io/facundootero/coordinator:v18
           imagePullPolicy: Always
           ports:
             - name: http
@@ -50,6 +50,14 @@ spec:
 
             - name: REDIS_HOST
               value: redis-integrador.servicios
+            - name: TIEMPO_OBJETIVO_BLOQUE
+              value: "30"
+            - name: LONGITUD_MIN_PREFIJO
+              value: "3"
+            - name: LONGITUD_MAX_PREFIJO
+              value: "5"
+            - name: CANTIDAD_BLOQUES_HISTORIAL
+              value: "10"
           # startupProbe:
           #   httpGet:
           #     path: /alive
