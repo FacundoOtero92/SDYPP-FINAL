@@ -29,7 +29,7 @@ spec:
       serviceAccountName: coordinator-ksa
       containers:
         - name: coordinator
-          image: docker.io/facundootero/coordinator:v20
+          image: docker.io/facundootero/coordinator:v21
           imagePullPolicy: Always
           ports:
             - name: http
@@ -58,6 +58,8 @@ spec:
               value: "5"
             - name: CANTIDAD_BLOQUES_HISTORIAL
               value: "10"
+            - name: PREFIJO_FORZADO
+              value: "0"
           # startupProbe:
           #   httpGet:
           #     path: /alive
