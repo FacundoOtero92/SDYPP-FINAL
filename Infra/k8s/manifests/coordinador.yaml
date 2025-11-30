@@ -59,7 +59,7 @@ spec:
             - name: CANTIDAD_BLOQUES_HISTORIAL
               value: "10"
             - name: PREFIJO_FORZADO
-              value: "0"
+              value: "00"
           # startupProbe:
           #   httpGet:
           #     path: /alive
