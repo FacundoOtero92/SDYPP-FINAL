@@ -70,7 +70,7 @@ spec:
       serviceAccountName: coordinador-workers-sa  
       containers:
         - name: app
-          image: docker.io/facundootero/coordinador_worker_alive:v17
+          image: docker.io/facundootero/coordinador_worker_alive:v18
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5003
@@ -135,13 +135,6 @@ spec:
               value: "worker-cpu-mig"
             - name: MIG_SCOPE           
               value: "zone"
-            - name: GPU_GATE_ENABLED
-              value: "true"
-            - name: GPU_GATE_CHECK_SEC
-              value: "15"
-            - name: GPU_GATE_ANTI_FLAP
-              value: "30"
-
           livenessProbe:
             httpGet:
               path: /status
