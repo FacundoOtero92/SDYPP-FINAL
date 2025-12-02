@@ -70,7 +70,7 @@ spec:
       serviceAccountName: coordinador-workers-sa  
       containers:
         - name: app
-          image: docker.io/facundootero/coordinador_worker_alive:v18
+          image: docker.io/facundootero/coordinador_worker_alive:v19
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5003
@@ -100,6 +100,8 @@ spec:
               value: "10"                           # tope de instancias en el MIG
             - name: MIN_CPU_SI_HAY_BACKLOG
               value: "1"                            # mínimo de CPUs si backlog > 0
+            - name: MIG_AUTOSCALER
+              value: "worker-cpu-autoscaler"
 
   
 
