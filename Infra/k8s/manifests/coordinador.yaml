@@ -59,13 +59,13 @@ spec:
             - name: CANTIDAD_BLOQUES_HISTORIAL
               value: "10"
             - name: PREFIJO_FORZADO
-              value: "00000"
+              value: ""
           # startupProbe:
           #   httpGet:
           #     path: /alive
           #     port: 5000
           #   periodSeconds: 5
-          #   failureThreshold: 30     # ~150s para arrancar todo
+          #   failureThreshold: 30     
           livenessProbe:
             httpGet:
               path: /alive
