@@ -32,7 +32,7 @@ jobs:
       TF_VAR_create_dns_zone: "true"   
       TF_VAR_zone:         us-east1-c
       TF_VAR_pool_size:    "2"
-      TF_VAR_worker_image: docker.io/facundootero/worker_cpu:v7
+      TF_VAR_worker_image: docker.io/facundootero/worker_cpu:v21
 
     steps:
       - uses: actions/checkout@v4

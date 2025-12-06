@@ -59,8 +59,9 @@ variable "prefix" { default = "worker-" }
 variable "desc" { default = "Worker que realiza funcion sobel." }
 variable "tags" { default = "servicio" }
 variable "desc_inst" { default = "worker sobel instance" }
-variable "machine_type" { default = "n1-standard-1" }
-variable "source_image" { default = "ubuntu-os-cloud/ubuntu-2204-lts" } //This is the family tag used when building the Golden Image with Packer.
+# variable "machine_type" { default = "n1-standard-1" }
+variable "machine_type" { default = "e2-small"}
+variable "source_image" { default = "ubuntu-os-cloud/ubuntu-2204-lts" } 
 
 
 
@@ -99,12 +100,12 @@ variable "fwr_name" { default = "allow-http-https" }
 #Autoscaler
 
 variable "min_replicas" {
-  type    = string
-  default = 1
+  type    = number
+  default = 0
 }
 
 variable "max_replicas" {
-  type    = string
+  type    = number
   default = 10
 }
 
@@ -137,27 +138,30 @@ variable "startup_worker_cpu" {
 }
 
 
-# ---- Imagen Docker en Docker Hub (pública) ----
+# Imagen Docker en Docker Hub (pública) ----
 variable "worker_image" {
   type    = string
-  default = "docker.io/facundootero/worker_cpu:v7"
+  default = "docker.io/facundootero/worker_cpu:v21"
 }
 
-# ---- ENV que tu worker necesita (ajustalas a tu script) ----
+
 variable "worker_env" {
   type = map(string)
   default = {
-    RABBITMQ_HOST     ="35.231.169.162"   # o IP interna
-  RABBITMQ_PORT     = "5672"
-  RABBITMQ_USER     = "admin"
-  RABBITMQ_PASSWORD = "admin1234!"
-  RABBITMQ_VHOST    = "/"
-  RABBITMQ_QUEUE    = "pool.tasks"             # <- cola a consumir
-  COORDINATOR_URL = "http://35.231.169.162/solved_task"
-  HEARTBEAT_URL="http://35.231.169.162/workers-hb/alive"
-  WORKER_TYPE="cpu"
-  HEARTBEAT_PERIOD="7"
-  PREFETCH_COUNT="10"
+    RABBITMQ_HOST     ="34.26.92.5"   
+    RABBITMQ_PORT     = "5672"
+    RABBITMQ_USER     = "admin"
+    RABBITMQ_PASSWORD = "admin1234!"
+    RABBITMQ_VHOST    = "/"
+    RABBITMQ_QUEUE    = "pool.tasks"             
+    COORDINATOR_URL ="http://35.231.169.162/solved_task"
+    HEARTBEAT_URL="http://35.231.169.162/workers-hb/alive"
+    WORKER_TYPE="cpu"
+    HEARTBEAT_PERIOD="7"
+    PREFETCH_COUNT="10"
+    # PUSHGATEWAY_ADDR="pushgateway.monitoreo.svc.cluster.local:9091"
+    PUSHGATEWAY_HOST="35.231.51.5"
+    PUSHGATEWAY_PORT="9091"
   }
 }
 

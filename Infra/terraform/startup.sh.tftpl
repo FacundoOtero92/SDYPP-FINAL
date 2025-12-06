@@ -41,7 +41,7 @@ mkdir -p /opt/worker-cpu
 
 cat >/opt/worker-cpu/.env <<'ENV'
 # --- RabbitMQ ILB interno ---
-RABBITMQ_HOST=35.231.169.162
+RABBITMQ_HOST=34.26.92.5
 RABBITMQ_PORT=5672
 RABBITMQ_USER=admin
 RABBITMQ_PASSWORD=admin1234!
@@ -57,6 +57,8 @@ HEARTBEAT_PERIOD=7
 PREFETCH_COUNT=10
 # Identificador opcional del worker
 WORKER_ID=$${HOSTNAME}
+PUSHGATEWAY_HOST=35.231.51.5
+PUSHGATEWAY_PORT=9091
 ENV
 
 # -------- 3) Ejecutar contenedor --------

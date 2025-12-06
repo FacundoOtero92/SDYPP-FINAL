@@ -4,4 +4,3 @@ opencv-python
 redis
 requests
 google-cloud-storage
-prometheus-client

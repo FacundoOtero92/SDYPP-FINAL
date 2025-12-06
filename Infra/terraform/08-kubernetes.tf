@@ -3,7 +3,7 @@ data "google_container_cluster" "cluster-integrador" {
 #  location = var.region # si es regional; si querés zonal, usa var.zone
  location = var.zone
   #  remove_default_node_pool = false
-  #   initial_node_count       = 1
+  #   initial_node_count       = 2
   #  deletion_protection = false
 
   # node_config {

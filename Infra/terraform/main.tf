@@ -1,17 +1,15 @@
-############################
-# Variables
-############################
+
 
 variable "vpc_name" {
   description = "Nombre de la VPC"
   type        = string
-  default     = "main" # <— antes 'default'
+  default     = "main" 
 }
 
 variable "subnet_name" {
   description = "Nombre de la subred en la región indicada"
   type        = string
-  default     = "private" # <— antes 'default'
+  default     = "private" 
 }
 
 variable "dns_domain" {
@@ -32,21 +30,10 @@ variable "create_dns_zone" {
   default     = true
 }
 
-############################
-# Data sources (resuelven self_links)
-############################
-# resource "google_compute_network" "vpc" {
-#   name = var.vpc_name
-# }
 
-#  resource "google_compute_subnetwork" "subnet" {
-#    name   = var.subnet_name
-#    region = var.region
-#  }
 
-############################
 # IP interna estática para ingress-nginx (ILB)
-############################
+
 resource "google_compute_address" "ingress_ilb" {
   name         = "ingress-ilb"
   region       = var.region
@@ -58,9 +45,9 @@ resource "google_compute_address" "ingress_ilb" {
 
 }
 
-############################
+
 # DNS privado (Cloud DNS)
-############################
+
 resource "google_dns_managed_zone" "svc" {
   count      = var.create_dns_zone ? 1 : 0
   name       = var.dns_zone_name
