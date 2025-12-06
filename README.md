@@ -1,6 +1,6 @@
 # **Trabajo Práctico Integrador – SDYPP- Curso 2024**
 **Autor:** Facundo Otero  
-**Legajo:** 118048 
+**Legajo:** 118048   
 **Correo:** facundo_otero@hotmail.com 
 
 --- 
