@@ -12,7 +12,8 @@
 ### Diagrama de Arquitectura
  https://drive.google.com/file/d/1ATyUXH_LYVR-KklzRSlnjfaNFsYLNPe4/view?usp=sharing
 
-![Diagrama de Arquitectura](https://drive.google.com/uc?export=download&id=1ATyUXH_LYVR-KklzRSlnjfafNF5yLNPe4)
+![Diagrama de Arquitectura](Diagrama/Diagrama_Infra.png)
+
 
 
 ---
