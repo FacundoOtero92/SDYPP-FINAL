@@ -7,11 +7,12 @@
 
 ## 📄 Documentación
 ### Informe Final
- *Agregar aquí el enlace al PDF del informe final*
+ https://drive.google.com/file/d/1sG3zbueCJ3MTG_WQNpEpmaNjw7LYNjeO/view?usp=sharing
 
 ### Diagrama de Arquitectura
- https://drive.google.com/file/d/1dVnFhrbgs3D4V9aQI--b5QqKiuRAHx2U/view?usp=sharing
+ https://drive.google.com/file/d/1ATyUXH_LYVR-KklzRSlnjfaNFsYLNPe4/view?usp=sharing
 
+ ![Diagrama de Arquitectura](https://drive.google.com/file/d/1ATyUXH_LYVR-KklzRSlnjfaNFsYLNPe4/view?usp=sharing)
 
 ---
 
