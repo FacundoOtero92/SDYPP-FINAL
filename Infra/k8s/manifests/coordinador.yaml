@@ -41,10 +41,20 @@ spec:
               value: "5672"
             - name: RABBITMQ_VHOST
               value: "/"
+            # - name: RABBITMQ_USER
+            #   value: "admin"
+            # - name: RABBITMQ_PASS
+            #   value: "admin1234!"
             - name: RABBITMQ_USER
-              value: "admin"
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: username
             - name: RABBITMQ_PASS
-              value: "admin1234!"
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: password
 
   # (Eliminar RABBIT_HOST/PORT/VHOST/USER/PASS si existen)
 

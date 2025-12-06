@@ -1,45 +1,4 @@
 
-# ===========================================
-# 1) ConfigMap - variables NO secretas
-# ===========================================
-# apiVersion: v1
-# kind: ConfigMap
-# metadata:
-#   name: coordinador-workers-config
-#   namespace: integrador
-# data:
-#   # Redis para heartbeats
-#   REDIS_HOST: "redis-integrador"
-#   REDIS_PORT: "6379"
-#   REDIS_DB: "0"
-#   HB_TTL_SEC: "45"
-
-#   # RabbitMQ para medir backlog (opcional autoscaling)
-#   RABBITMQ_HOST: "rabbitmq"
-#   RABBITMQ_PORT: "5672"
-#   RABBITMQ_USER: "admin"
-#   POOL_QUEUE: "pool.tasks"
-
-#   # Política de autoscaling (si la usás)
-#   ENABLE_AUTOSCALE: "true"
-#   CPU_BOOT_COUNT: "1"
-#   CHECK_BACKLOG_SEC: "15"
-#   MIN_BACKLOG_FOR_CPU: "2"
-#   ANTI_FLAP_SEC: "20"
-  
-# ---
-# # ===========================================
-# # 2) Secret - credenciales sensibles
-# # ===========================================
-# apiVersion: v1
-# kind: Secret
-# metadata:
-#   name: coordinador-workers-secrets
-#   namespace: integrador
-# type: Opaque
-# stringData:
-#   RABBITMQ_PASSWORD: "admin1234!"   # <-- CAMBIAR
----
 # sa-coordinador-workers.yaml
 apiVersion: v1
 kind: ServiceAccount
@@ -49,9 +8,9 @@ metadata:
   annotations:
     iam.gke.io/gcp-service-account: coordinador-workers-gsa@sdypp122025.iam.gserviceaccount.com
 ---
-# ===========================================
+
 # 3) Deployment - coordinador de workers (puerto 5003)
-# ===========================================
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -121,10 +80,20 @@ spec:
               value: "rabbitmq.servicios"
             - name: RABBITMQ_PORT
               value: "5672"
+            # - name: RABBITMQ_USER
+            #   value: "admin"
+            # - name: RABBITMQ_PASSWORD
+            #   value: "admin1234!"
             - name: RABBITMQ_USER
-              value: "admin"
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: username
             - name: RABBITMQ_PASSWORD
-              value: "admin1234!"
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-secret
+                  key: password
             - name: POOL_QUEUE
               value: "pool.tasks"
 
