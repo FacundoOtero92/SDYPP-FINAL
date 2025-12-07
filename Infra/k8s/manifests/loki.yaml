@@ -82,11 +82,11 @@ spec:
               mountPath: /loki
           resources:
             requests:
-              cpu: "50m"
-              memory: "128Mi"
+              cpu: "10m"
+              memory: "32Mi"
             limits:
-              cpu: "200m"
-              memory: "512Mi"
+              cpu: "10m"
+              memory: "32Mi"
       volumes:
         - name: loki-config
           configMap:
@@ -172,8 +172,8 @@ spec:
               cpu: "10m"
               memory: "32Mi"
             limits:
-              cpu: "100m"
-              memory: "128Mi"
+              cpu: "10m"
+              memory: "32Mi"
       volumes:
         - name: promtail-config
           configMap:
