@@ -94,11 +94,11 @@ spec:
               mountPath: /var/loki
           resources:
             requests:
-              cpu: "20m"
+              cpu: "16m"
               memory: "64Mi"
             limits:
-              cpu: "500m"
-              memory: "512Mi"
+              cpu: "16m"
+              memory: "64Mi"
       volumes:
         - name: loki-config
           configMap:
@@ -199,10 +199,10 @@ spec:
               mountPath: /run/promtail
           resources:
             requests:
-              cpu: "20m"
+              cpu: "16m"
               memory: "64Mi"
             limits:
-              cpu: "20m"
+              cpu: "16m"
               memory: "64Mi"
       volumes:
         - name: promtail-config
