@@ -1,7 +1,4 @@
 
-
-# ConfigMap de Loki (retención corta para no llenar disco)
-
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -13,19 +10,15 @@ data:
 
     server:
       http_listen_port: 3100
-      log_level: info
 
     ingester:
       lifecycler:
-        address: 127.0.0.1
         ring:
           kvstore:
             store: inmemory
           replication_factor: 1
-        final_sleep: 0s
       chunk_idle_period: 5m
-      chunk_retain_period: 30s
-      max_transfer_retries: 0
+      max_chunk_age: 1h
 
     schema_config:
       configs:
@@ -35,33 +28,28 @@ data:
           schema: v11
           index:
             prefix: index_
-            period: 12h
+            period: 24h
 
     storage_config:
+      boltdb_shipper:
+        active_index_directory: /loki/index
+        cache_location: /loki/index
+        shared_store: filesystem
       filesystem:
-        directory: /var/loki
+        directory: /loki/chunks
 
     compactor:
-      working_directory: /var/loki
+      working_directory: /loki/compactor
       shared_store: filesystem
 
-    # Limitar retención para no guardar logs por mucho tiempo
     limits_config:
-      retention_period: 6h
+      ingestion_rate_mb: 8
+      ingestion_burst_size_mb: 16
+      max_entries_limit_per_query: 5000
 
-    chunk_store_config:
-      max_look_back_period: 6h
-
-    table_manager:
-      retention_deletes_enabled: true
-      retention_period: 6h
-
-    analytics:
-      reporting_enabled: false
+    querier:
+      query_ingesters_within: 2h
 ---
-
-# Deployment de Loki
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -85,20 +73,20 @@ spec:
           args:
             - -config.file=/etc/loki/loki-config.yaml
           ports:
-            - name: http
-              containerPort: 3100
+            - containerPort: 3100
+              name: http
           volumeMounts:
             - name: loki-config
               mountPath: /etc/loki
             - name: loki-data
-              mountPath: /var/loki
+              mountPath: /loki
           resources:
             requests:
-              cpu: "16m"
-              memory: "64Mi"
+              cpu: "50m"
+              memory: "128Mi"
             limits:
-              cpu: "16m"
-              memory: "64Mi"
+              cpu: "200m"
+              memory: "512Mi"
       volumes:
         - name: loki-config
           configMap:
@@ -107,9 +95,8 @@ spec:
               - key: loki-config.yaml
                 path: loki-config.yaml
         - name: loki-data
-          emptyDir: 
+          emptyDir: {}
 ---
-
 apiVersion: v1
 kind: Service
 metadata:
@@ -124,9 +111,6 @@ spec:
       port: 3100
       targetPort: 3100
 ---
-
-# ConfigMap de Promtail
-
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -138,44 +122,30 @@ data:
       http_listen_port: 9080
       grpc_listen_port: 0
 
-    clients:
-      - url: http://loki.monitoreo.svc.cluster.local:3100/loki/api/v1/push
-
     positions:
       filename: /run/promtail/positions.yaml
 
+    clients:
+      - url: http://loki.monitoreo.svc.cluster.local:3100/loki/api/v1/push
+
     scrape_configs:
       - job_name: kubernetes-pods
-        pipeline_stages:
-          - docker: {}
-        kubernetes_sd_configs:
-          - role: pod
-        relabel_configs:
-          # Solo logs de contenedores
-          - source_labels: [__meta_kubernetes_pod_container_name]
-            target_label: container
-          - source_labels: [__meta_kubernetes_pod_name]
-            target_label: pod
-          - source_labels: [__meta_kubernetes_namespace]
-            target_label: namespace
-          - source_labels: [__meta_kubernetes_pod_node_name]
-            target_label: node
-          - source_labels: [__meta_kubernetes_pod_label_app]
-            target_label: app
-          # Ruta de los logs en el nodo
-          - source_labels: [__meta_kubernetes_pod_container_name]
-            target_label: __path__
-            replacement: /var/log/containers/*$1*.log
+        static_configs:
+          - targets:
+              - localhost
+            labels:
+              job: kubernetes-pods
+              __path__: /var/log/containers/*.log
 ---
-
 apiVersion: apps/v1
-kind: DaemonSet
+kind: Deployment
 metadata:
   name: promtail
   namespace: monitoreo
   labels:
     app: promtail
 spec:
+  replicas: 1
   selector:
     matchLabels:
       app: promtail
@@ -184,7 +154,6 @@ spec:
       labels:
         app: promtail
     spec:
-      serviceAccountName: default
       containers:
         - name: promtail
           image: grafana/promtail:2.9.0
@@ -194,16 +163,17 @@ spec:
             - name: promtail-config
               mountPath: /etc/promtail
             - name: varlog
-              mountPath: /var/log
+              mountPath: /var/log/containers
+              readOnly: true
             - name: positions
               mountPath: /run/promtail
           resources:
             requests:
-              cpu: "16m"
-              memory: "64Mi"
+              cpu: "10m"
+              memory: "32Mi"
             limits:
-              cpu: "16m"
-              memory: "64Mi"
+              cpu: "100m"
+              memory: "128Mi"
       volumes:
         - name: promtail-config
           configMap:
@@ -213,6 +183,7 @@ spec:
                 path: promtail.yaml
         - name: varlog
           hostPath:
-            path: /var/log
+            path: /var/log/containers
+            type: Directory
         - name: positions
           emptyDir: {}
