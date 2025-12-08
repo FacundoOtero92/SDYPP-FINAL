@@ -128,9 +128,8 @@ data:
     clients:
       - url: http://loki.monitoreo.svc.cluster.local:3100/loki/api/v1/push
 
-    # Por ahora dejamos un scrape básico; más adelante
-    # lo ajustamos según la estrategia de logs que elijas.
     scrape_configs:
+      # Logs del propio Promtail (opcional)
       - job_name: promtail-self
         static_configs:
           - targets:
@@ -138,6 +137,44 @@ data:
             labels:
               job: promtail
               __path__: /run/promtail/*.log
+
+      # Logs de pods de Kubernetes
+      - job_name: kubernetes-pods
+        pipeline_stages:
+          - docker: {}
+        kubernetes_sd_configs:
+          - role: pod
+
+        relabel_configs:
+          - action: replace
+            source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node
+
+          - action: replace
+            source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+
+          - action: replace
+            source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+
+          - action: replace
+            source_labels: [__meta_kubernetes_container_name]
+            target_label: container
+
+          - action: replace
+            replacement: kubernetes-pods
+            target_label: job
+
+          # Ruta real del archivo de log dentro del nodo
+          - action: replace
+            separator: /
+            source_labels:
+              - __meta_kubernetes_pod_uid
+              - __meta_kubernetes_pod_container_name
+            target_label: __path__
+            replacement: /var/log/pods/*$1/*.log
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -156,29 +193,32 @@ spec:
       labels:
         app: promtail
     spec:
-      containers:
-        - name: promtail
-          image: grafana/promtail:2.9.0
-          args:
-            - -config.file=/etc/promtail/promtail.yaml
-          volumeMounts:
-            - name: promtail-config
-              mountPath: /etc/promtail
-            - name: positions
-              mountPath: /run/promtail
-          resources:
-            requests:
-              cpu: "10m"
-              memory: "32Mi"
-            limits:
-              cpu: "50m"
-              memory: "128Mi"
-      volumes:
-        - name: promtail-config
-          configMap:
-            name: promtail-config
-            items:
-              - key: promtail.yaml
-                path: promtail.yaml
-        - name: positions
-          emptyDir: {}
+    template:
+      spec:
+        containers:
+          - name: promtail
+            image: grafana/promtail:2.9.0
+            args:
+              - -config.file=/etc/promtail/promtail.yaml
+            volumeMounts:
+              - name: config
+                mountPath: /etc/promtail
+              - name: positions
+                mountPath: /run/promtail
+              - name: pods
+                mountPath: /var/log/pods
+                readOnly: true
+        volumes:
+          - name: config
+            configMap:
+              name: promtail-config
+              items:
+                - key: promtail.yaml
+                  path: promtail.yaml
+          - name: positions
+            emptyDir: {}
+          - name: pods
+            hostPath:
+              path: /var/log/pods
+              type: DirectoryOrCreate
+
