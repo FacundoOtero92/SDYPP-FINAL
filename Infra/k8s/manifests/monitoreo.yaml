@@ -21,9 +21,9 @@ spec:
         - name: prometheus
           image: prom/prometheus:v2.54.0
           securityContext:
+            fsGroup: 2000
             runAsUser: 0
             runAsGroup: 0
-            fsGroup: 2000
           args:
             - "--config.file=/etc/prometheus/prometheus.yml"
             - "--storage.tsdb.path=/prometheus"
