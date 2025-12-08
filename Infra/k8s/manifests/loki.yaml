@@ -167,4 +167,109 @@ data:
       filename: /run/promtail/positions.yaml
 
     clients:
-      - url:
+      - url: http://loki.monitoreo.svc.cluster.local:3100/loki/api/v1/push
+
+    scrape_configs:
+      # Logs del propio Promtail (opcional)
+      - job_name: promtail-self
+        static_configs:
+          - targets:
+              - localhost
+            labels:
+              job: promtail
+              __path__: /run/promtail/*.log
+
+      # Logs de contenedores (ruta estándar en muchos clusters, incl. GKE)
+      - job_name: containers
+        static_configs:
+          - targets:
+              - localhost
+            labels:
+              job: containers
+              __path__: /var/log/containers/*.log
+
+      # Logs de pods con SD de Kubernetes (cuando quieras filtrar por namespace/pod)
+      - job_name: kubernetes-pods
+        pipeline_stages:
+          - docker: {}
+        kubernetes_sd_configs:
+          - role: pod
+
+        relabel_configs:
+          - action: replace
+            source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node
+
+          - action: replace
+            source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+
+          - action: replace
+            source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+
+          - action: replace
+            source_labels: [__meta_kubernetes_container_name]
+            target_label: container
+
+          - action: replace
+            replacement: kubernetes-pods
+            target_label: job
+
+          # Ruta de logs por pod (si tu cluster la expone)
+          - action: replace
+            separator: /
+            source_labels:
+              - __meta_kubernetes_pod_uid
+              - __meta_kubernetes_pod_container_name
+            target_label: __path__
+            replacement: /var/log/pods/*$1/*.log
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: promtail
+  namespace: monitoreo
+  labels:
+    app: promtail
+spec:
+  selector:
+    matchLabels:
+      app: promtail
+  template:
+    metadata:
+      labels:
+        app: promtail
+    spec:
+      serviceAccountName: promtail
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: promtail
+          image: grafana/promtail:2.9.0
+          args:
+            - -config.file=/etc/promtail/promtail.yaml
+          volumeMounts:
+            - name: config
+              mountPath: /etc/promtail
+            - name: positions
+              mountPath: /run/promtail
+            - name: varlog
+              mountPath: /var/log
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: promtail-config
+            items:
+              - key: promtail.yaml
+                path: promtail.yaml
+        - name: positions
+          emptyDir: {}
+        - name: varlog
+          hostPath:
+            path: /var/log
+            type: Directory
