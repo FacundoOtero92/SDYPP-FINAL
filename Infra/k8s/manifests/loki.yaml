@@ -193,32 +193,29 @@ spec:
       labels:
         app: promtail
     spec:
-    template:
-      spec:
-        containers:
-          - name: promtail
-            image: grafana/promtail:2.9.0
-            args:
-              - -config.file=/etc/promtail/promtail.yaml
-            volumeMounts:
-              - name: config
-                mountPath: /etc/promtail
-              - name: positions
-                mountPath: /run/promtail
-              - name: pods
-                mountPath: /var/log/pods
-                readOnly: true
-        volumes:
-          - name: config
-            configMap:
-              name: promtail-config
-              items:
-                - key: promtail.yaml
-                  path: promtail.yaml
-          - name: positions
-            emptyDir: {}
-          - name: pods
-            hostPath:
-              path: /var/log/pods
-              type: DirectoryOrCreate
-
+      containers:
+        - name: promtail
+          image: grafana/promtail:2.9.0
+          args:
+            - -config.file=/etc/promtail/promtail.yaml
+          volumeMounts:
+            - name: config
+              mountPath: /etc/promtail
+            - name: positions
+              mountPath: /run/promtail
+            - name: pods
+              mountPath: /var/log/pods
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: promtail-config
+            items:
+              - key: promtail.yaml
+                path: promtail.yaml
+        - name: positions
+          emptyDir: {}
+        - name: pods
+          hostPath:
+            path: /var/log/pods
+            type: DirectoryOrCreate
