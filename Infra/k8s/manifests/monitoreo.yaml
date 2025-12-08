@@ -1,12 +1,13 @@
-##prometheus
+## PROMETHEUS - StatefulSet + PVC
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: prometheus
   namespace: monitoreo
   labels:
     app: prometheus
 spec:
+  serviceName: prometheus     # usa el Service existente
   replicas: 1
   selector:
     matchLabels:
@@ -18,7 +19,7 @@ spec:
     spec:
       containers:
         - name: prometheus
-          image: prom/prometheus:v2.54.0 
+          image: prom/prometheus:v2.54.0
           args:
             - "--config.file=/etc/prometheus/prometheus.yml"
             - "--storage.tsdb.path=/prometheus"
@@ -29,21 +30,28 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/prometheus
-            - name: data
+            - name: prometheus-data
               mountPath: /prometheus
           resources:
             requests:
-              cpu: "100m"
-              memory: "100Mi"
+              cpu: "200m"
+              memory: "256Mi"
             limits:
-              cpu: "100m"
-              memory: "100Mi"
+              cpu: "200m"
+              memory: "256Mi"
       volumes:
         - name: config
           configMap:
             name: prometheus-config
-        - name: data
-          emptyDir: {}  
+  volumeClaimTemplates:
+    - metadata:
+        name: prometheus-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 5Gi
+
 ---
 apiVersion: v1
 kind: Service
@@ -60,16 +68,18 @@ spec:
     - name: http
       port: 9090
       targetPort: 9090
+
 ---
-## grafana
+## GRAFANA - StatefulSet + PVC
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: grafana
   namespace: monitoreo
   labels:
     app: grafana
 spec:
+  serviceName: grafana
   replicas: 1
   selector:
     matchLabels:
@@ -80,28 +90,38 @@ spec:
         app: grafana
     spec:
       containers:
-      - name: grafana
-        image: grafana/grafana:10.4.2
-        ports:
-        - name: http
-          containerPort: 3000
-        env:
-        - name: GF_SECURITY_ADMIN_USER
-          value: "admin"
-        - name: GF_SECURITY_ADMIN_PASSWORD
-          value: "admin"
-        # IMPORTANTE: servido bajo /grafana, usando placeholders
-        - name: GF_SERVER_ROOT_URL
-          value: "http://35.231.169.162/grafana/"
-        - name: GF_SERVER_SERVE_FROM_SUB_PATH
-          value: "true"
+        - name: grafana
+          image: grafana/grafana:10.4.2
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              value: "admin"
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              value: "admin"
+            - name: GF_SERVER_ROOT_URL
+              value: "http://35.231.169.162/grafana/"
+            - name: GF_SERVER_SERVE_FROM_SUB_PATH
+              value: "true"
+          volumeMounts:
+            - name: grafana-data
+              mountPath: /var/lib/grafana
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "100Mi"
+            limits:
+              cpu: "100m"
+              memory: "100Mi"
+  volumeClaimTemplates:
+    - metadata:
+        name: grafana-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
         resources:
           requests:
-            cpu: "100m"
-            memory: "100Mi"
-          limits:
-            cpu: "100m"
-            memory: "100Mi"
+            storage: 5Gi
 
 ---
 apiVersion: v1
@@ -141,10 +161,8 @@ spec:
                 port:
                   number: 3000
 
-
-
 ---
-## pushgateway
+## PUSHGATEWAY (se mantiene como Deployment sin PVC)
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -175,6 +193,7 @@ spec:
             limits:
               cpu: "64m"
               memory: "64Mi"
+
 ---
 apiVersion: v1
 kind: Service
