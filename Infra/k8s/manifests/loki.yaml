@@ -98,7 +98,7 @@ metadata:
   labels:
     app: loki
 spec:
-  serviceName: loki         
+  serviceName: loki
   replicas: 1
   selector:
     matchLabels:
@@ -108,6 +108,8 @@ spec:
       labels:
         app: loki
     spec:
+      securityContext:
+        fsGroup: 10001              # grupo que tendrá acceso al PVC
       containers:
         - name: loki
           image: grafana/loki:2.9.0
@@ -116,11 +118,15 @@ spec:
           ports:
             - containerPort: 3100
               name: http
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001        # usuario no root
+            runAsGroup: 10001
           volumeMounts:
             - name: loki-config
               mountPath: /etc/loki
             - name: loki-data
-              mountPath: /loki        
+              mountPath: /loki
           resources:
             requests:
               cpu: "200m"
@@ -142,8 +148,7 @@ spec:
         accessModes: ["ReadWriteOnce"]
         resources:
           requests:
-            storage: 10Gi   
-
+            storage: 10Gi
 ---
 apiVersion: v1
 kind: Service
