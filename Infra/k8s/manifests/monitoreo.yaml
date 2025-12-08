@@ -1,12 +1,12 @@
-##prometheus
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: prometheus
   namespace: monitoreo
   labels:
     app: prometheus
 spec:
+  serviceName: prometheus         
   replicas: 1
   selector:
     matchLabels:
@@ -16,9 +16,11 @@ spec:
       labels:
         app: prometheus
     spec:
+      securityContext:
+        fsGroup: 65534            
       containers:
         - name: prometheus
-          image: prom/prometheus:v2.54.0 
+          image: prom/prometheus:v2.54.0
           args:
             - "--config.file=/etc/prometheus/prometheus.yml"
             - "--storage.tsdb.path=/prometheus"
@@ -29,21 +31,27 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/prometheus
-            - name: data
+            - name: prometheus-data
               mountPath: /prometheus
           resources:
             requests:
-              cpu: "10m"
-              memory: "64Mi"
+              cpu: "200m"
+              memory: "256Mi"
             limits:
-              cpu: "10m"
-              memory: "64Mi"
+              cpu: "200m"
+              memory: "256Mi"
       volumes:
         - name: config
           configMap:
             name: prometheus-config
-        - name: data
-          emptyDir: {}  
+  volumeClaimTemplates:
+    - metadata:
+        name: prometheus-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
 ---
 apiVersion: v1
 kind: Service
@@ -60,6 +68,7 @@ spec:
     - name: http
       port: 9090
       targetPort: 9090
+
 ---
 ## grafana
 apiVersion: apps/v1
@@ -97,10 +106,10 @@ spec:
           value: "true"
         resources:
           requests:
-            cpu: "20m"
-            memory: "64Mi"
+            cpu: "200m"
+            memory: "200Mi"
           limits:
-            cpu: "100m"
+            cpu: "200m"
             memory: "256Mi"
 
 ---
@@ -170,11 +179,11 @@ spec:
               containerPort: 9091
           resources:
             requests:
-              cpu: "10m"
-              memory: "32Mi"
+              cpu: "100m"
+              memory: "100Mi"
             limits:
-              cpu: "50m"
-              memory: "64Mi"
+              cpu: "100m"
+              memory: "100Mi"
 ---
 apiVersion: v1
 kind: Service
