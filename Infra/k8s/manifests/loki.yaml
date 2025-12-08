@@ -38,76 +38,55 @@ subjects:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: promtail-config
+  name: loki-config
   namespace: monitoreo
 data:
-  promtail.yaml: |
+  loki-config.yaml: |
+    auth_enabled: false
+
     server:
-      http_listen_port: 9080
-      grpc_listen_port: 0
+      http_listen_port: 3100
 
-    positions:
-      filename: /run/promtail/positions.yaml
+    ingester:
+      wal:
+        dir: /loki/wal
+      lifecycler:
+        ring:
+          kvstore:
+            store: inmemory
+          replication_factor: 1
+      chunk_idle_period: 5m
+      max_chunk_age: 1h
 
-    clients:
-      - url: http://loki.monitoreo.svc.cluster.local:3100/loki/api/v1/push
+    schema_config:
+      configs:
+        - from: 2020-10-24
+          store: boltdb-shipper
+          object_store: filesystem
+          schema: v11
+          index:
+            prefix: index_
+            period: 24h
 
-    scrape_configs:
-      # Logs del propio Promtail (opcional)
-      - job_name: promtail-self
-        static_configs:
-          - targets:
-              - localhost
-            labels:
-              job: promtail
-              __path__: /run/promtail/*.log
+    storage_config:
+      boltdb_shipper:
+        active_index_directory: /loki/index
+        cache_location: /loki/index
+        shared_store: filesystem
+      filesystem:
+        directory: /loki/chunks
 
-      # DEBUG: leer todos los logs de /var/log/pods
-      - job_name: debug-pods
-        static_configs:
-          - targets:
-              - localhost
-            labels:
-              job: debug-pods
-              __path__: /var/log/pods/*/*.log
+    compactor:
+      working_directory: /loki/compactor
+      shared_store: filesystem
 
-      # Logs de pods de Kubernetes (cuando esto ande, nos quedamos con esto)
-      - job_name: kubernetes-pods
-        pipeline_stages:
-          - docker: {}
-        kubernetes_sd_configs:
-          - role: pod
+    limits_config:
+      ingestion_rate_mb: 8
+      ingestion_burst_size_mb: 16
+      max_entries_limit_per_query: 5000
 
-        relabel_configs:
-          - action: replace
-            source_labels: [__meta_kubernetes_pod_node_name]
-            target_label: node
-
-          - action: replace
-            source_labels: [__meta_kubernetes_namespace]
-            target_label: namespace
-
-          - action: replace
-            source_labels: [__meta_kubernetes_pod_name]
-            target_label: pod
-
-          - action: replace
-            source_labels: [__meta_kubernetes_container_name]
-            target_label: container
-
-          - action: replace
-            replacement: kubernetes-pods
-            target_label: job
-
-          # Ruta real del archivo de log dentro del nodo
-          - action: replace
-            separator: /
-            source_labels:
-              - __meta_kubernetes_pod_uid
-              - __meta_kubernetes_pod_container_name
-            target_label: __path__
-            replacement: /var/log/pods/*$1/*.log
-
+    querier:
+      query_ingesters_within: 2h
 
 ---
 apiVersion: apps/v1
@@ -188,97 +167,4 @@ data:
       filename: /run/promtail/positions.yaml
 
     clients:
-      - url: http://loki.monitoreo.svc.cluster.local:3100/loki/api/v1/push
-
-    scrape_configs:
-      # Logs del propio Promtail (opcional)
-      - job_name: promtail-self
-        static_configs:
-          - targets:
-              - localhost
-            labels:
-              job: promtail
-              __path__: /run/promtail/*.log
-
-      # Logs de pods de Kubernetes
-      - job_name: kubernetes-pods
-        pipeline_stages:
-          - docker: {}
-        kubernetes_sd_configs:
-          - role: pod
-
-        relabel_configs:
-          - action: replace
-            source_labels: [__meta_kubernetes_pod_node_name]
-            target_label: node
-
-          - action: replace
-            source_labels: [__meta_kubernetes_namespace]
-            target_label: namespace
-
-          - action: replace
-            source_labels: [__meta_kubernetes_pod_name]
-            target_label: pod
-
-          - action: replace
-            source_labels: [__meta_kubernetes_container_name]
-            target_label: container
-
-          - action: replace
-            replacement: kubernetes-pods
-            target_label: job
-
-          # Ruta real del archivo de log dentro del nodo
-          - action: replace
-            separator: /
-            source_labels:
-              - __meta_kubernetes_pod_uid
-              - __meta_kubernetes_pod_container_name
-            target_label: __path__
-            replacement: /var/log/pods/*$1/*.log
-
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: promtail
-  namespace: monitoreo
-  labels:
-    app: promtail
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: promtail
-  template:
-    metadata:
-      labels:
-        app: promtail
-    spec:
-      serviceAccountName: promtail
-      containers:
-        - name: promtail
-          image: grafana/promtail:2.9.0
-          args:
-            - -config.file=/etc/promtail/promtail.yaml
-          volumeMounts:
-            - name: config
-              mountPath: /etc/promtail
-            - name: positions
-              mountPath: /run/promtail
-            - name: pods
-              mountPath: /var/log/pods
-              readOnly: true
-      volumes:
-        - name: config
-          configMap:
-            name: promtail-config
-            items:
-              - key: promtail.yaml
-                path: promtail.yaml
-        - name: positions
-          emptyDir: {}
-        - name: pods
-          hostPath:
-            path: /var/log/pods
-            type: DirectoryOrCreate
+      - url:
