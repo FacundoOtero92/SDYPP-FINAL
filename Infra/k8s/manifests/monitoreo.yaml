@@ -1,12 +1,12 @@
+##prometheus
 apiVersion: apps/v1
-kind: StatefulSet
+kind: Deployment
 metadata:
   name: prometheus
   namespace: monitoreo
   labels:
     app: prometheus
 spec:
-  serviceName: prometheus         
   replicas: 1
   selector:
     matchLabels:
@@ -16,11 +16,9 @@ spec:
       labels:
         app: prometheus
     spec:
-      securityContext:
-        fsGroup: 65534            
       containers:
         - name: prometheus
-          image: prom/prometheus:v2.54.0
+          image: prom/prometheus:v2.54.0 
           args:
             - "--config.file=/etc/prometheus/prometheus.yml"
             - "--storage.tsdb.path=/prometheus"
@@ -31,27 +29,21 @@ spec:
           volumeMounts:
             - name: config
               mountPath: /etc/prometheus
-            - name: prometheus-data
+            - name: data
               mountPath: /prometheus
           resources:
             requests:
-              cpu: "64m"
-              memory: "128Mi"
+              cpu: "10m"
+              memory: "64Mi"
             limits:
-              cpu: "64m"
-              memory: "128Mi"
+              cpu: "10m"
+              memory: "64Mi"
       volumes:
         - name: config
           configMap:
             name: prometheus-config
-  volumeClaimTemplates:
-    - metadata:
-        name: prometheus-data
-      spec:
-        accessModes: ["ReadWriteOnce"]
-        resources:
-          requests:
-            storage: 10Gi
+        - name: data
+          emptyDir: {}  
 ---
 apiVersion: v1
 kind: Service
@@ -68,7 +60,6 @@ spec:
     - name: http
       port: 9090
       targetPort: 9090
-
 ---
 ## grafana
 apiVersion: apps/v1
@@ -106,11 +97,11 @@ spec:
           value: "true"
         resources:
           requests:
-            cpu: "64m"
-            memory: "128Mi"
+            cpu: "20m"
+            memory: "64Mi"
           limits:
-            cpu: "64m"
-            memory: "128Mi"
+            cpu: "100m"
+            memory: "256Mi"
 
 ---
 apiVersion: v1
@@ -179,11 +170,11 @@ spec:
               containerPort: 9091
           resources:
             requests:
-              cpu: "20m"
-              memory: "60Mi"
+              cpu: "10m"
+              memory: "32Mi"
             limits:
-              cpu: "20m"
-              memory: "60Mi"
+              cpu: "50m"
+              memory: "64Mi"
 ---
 apiVersion: v1
 kind: Service
