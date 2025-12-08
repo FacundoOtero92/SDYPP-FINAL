@@ -70,7 +70,6 @@ spec:
       targetPort: 9090
 
 ---
-## GRAFANA - StatefulSet + PVC
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -89,6 +88,10 @@ spec:
       labels:
         app: grafana
     spec:
+      securityContext:
+        runAsUser: 472
+        runAsGroup: 472
+        fsGroup: 472
       containers:
         - name: grafana
           image: grafana/grafana:10.4.2
@@ -122,7 +125,6 @@ spec:
         resources:
           requests:
             storage: 5Gi
-
 ---
 apiVersion: v1
 kind: Service
