@@ -33,11 +33,11 @@ spec:
               mountPath: /prometheus
           resources:
             requests:
-              cpu: "64m"
-              memory: "64Mi"
+              cpu: "100m"
+              memory: "100Mi"
             limits:
-              cpu: "64m"
-              memory: "64Mi"
+              cpu: "100m"
+              memory: "100Mi"
       volumes:
         - name: config
           configMap:
@@ -97,11 +97,11 @@ spec:
           value: "true"
         resources:
           requests:
-            cpu: "64m"
-            memory: "64Mi"
+            cpu: "100m"
+            memory: "100Mi"
           limits:
-            cpu: "64m"
-            memory: "64Mi"
+            cpu: "100m"
+            memory: "100Mi"
 
 ---
 apiVersion: v1
