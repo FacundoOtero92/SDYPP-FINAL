@@ -89,14 +89,16 @@ data:
       query_ingesters_within: 2h
 
 ---
+# Loki como StatefulSet + PVC
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: loki
   namespace: monitoreo
   labels:
     app: loki
 spec:
+  serviceName: loki         
   replicas: 1
   selector:
     matchLabels:
@@ -118,7 +120,7 @@ spec:
             - name: loki-config
               mountPath: /etc/loki
             - name: loki-data
-              mountPath: /loki
+              mountPath: /loki        
           resources:
             requests:
               cpu: "200m"
@@ -133,8 +135,14 @@ spec:
             items:
               - key: loki-config.yaml
                 path: loki-config.yaml
-        - name: loki-data
-          emptyDir: {}
+  volumeClaimTemplates:
+    - metadata:
+        name: loki-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi   
 
 ---
 apiVersion: v1
