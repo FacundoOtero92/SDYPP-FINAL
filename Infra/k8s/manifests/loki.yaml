@@ -38,55 +38,76 @@ subjects:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: loki-config
+  name: promtail-config
   namespace: monitoreo
 data:
-  loki-config.yaml: |
-    auth_enabled: false
-
+  promtail.yaml: |
     server:
-      http_listen_port: 3100
+      http_listen_port: 9080
+      grpc_listen_port: 0
 
-    ingester:
-      wal:
-        dir: /loki/wal    
-      lifecycler:
-        ring:
-          kvstore:
-            store: inmemory
-          replication_factor: 1
-      chunk_idle_period: 5m
-      max_chunk_age: 1h
+    positions:
+      filename: /run/promtail/positions.yaml
 
-    schema_config:
-      configs:
-        - from: 2020-10-24
-          store: boltdb-shipper
-          object_store: filesystem
-          schema: v11
-          index:
-            prefix: index_
-            period: 24h
+    clients:
+      - url: http://loki.monitoreo.svc.cluster.local:3100/loki/api/v1/push
 
-    storage_config:
-      boltdb_shipper:
-        active_index_directory: /loki/index
-        cache_location: /loki/index
-        shared_store: filesystem
-      filesystem:
-        directory: /loki/chunks
+    scrape_configs:
+      # Logs del propio Promtail (opcional)
+      - job_name: promtail-self
+        static_configs:
+          - targets:
+              - localhost
+            labels:
+              job: promtail
+              __path__: /run/promtail/*.log
 
-    compactor:
-      working_directory: /loki/compactor
-      shared_store: filesystem
+      # DEBUG: leer todos los logs de /var/log/pods
+      - job_name: debug-pods
+        static_configs:
+          - targets:
+              - localhost
+            labels:
+              job: debug-pods
+              __path__: /var/log/pods/*/*.log
 
-    limits_config:
-      ingestion_rate_mb: 8
-      ingestion_burst_size_mb: 16
-      max_entries_limit_per_query: 5000
+      # Logs de pods de Kubernetes (cuando esto ande, nos quedamos con esto)
+      - job_name: kubernetes-pods
+        pipeline_stages:
+          - docker: {}
+        kubernetes_sd_configs:
+          - role: pod
 
-    querier:
-      query_ingesters_within: 2h
+        relabel_configs:
+          - action: replace
+            source_labels: [__meta_kubernetes_pod_node_name]
+            target_label: node
+
+          - action: replace
+            source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+
+          - action: replace
+            source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+
+          - action: replace
+            source_labels: [__meta_kubernetes_container_name]
+            target_label: container
+
+          - action: replace
+            replacement: kubernetes-pods
+            target_label: job
+
+          # Ruta real del archivo de log dentro del nodo
+          - action: replace
+            separator: /
+            source_labels:
+              - __meta_kubernetes_pod_uid
+              - __meta_kubernetes_pod_container_name
+            target_label: __path__
+            replacement: /var/log/pods/*$1/*.log
+
 
 ---
 apiVersion: apps/v1
