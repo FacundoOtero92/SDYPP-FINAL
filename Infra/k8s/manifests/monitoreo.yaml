@@ -7,7 +7,7 @@ metadata:
   labels:
     app: prometheus
 spec:
-  serviceName: prometheus     # usa el Service existente
+  serviceName: prometheus     
   replicas: 1
   selector:
     matchLabels:
