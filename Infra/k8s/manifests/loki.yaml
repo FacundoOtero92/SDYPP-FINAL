@@ -33,6 +33,7 @@ subjects:
   - kind: ServiceAccount
     name: promtail
     namespace: monitoreo
+
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -56,6 +57,7 @@ data:
           replication_factor: 1
       chunk_idle_period: 5m
       max_chunk_age: 1h
+
     schema_config:
       configs:
         - from: 2020-10-24
@@ -85,6 +87,7 @@ data:
 
     querier:
       query_ingesters_within: 2h
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -132,6 +135,7 @@ spec:
                 path: loki-config.yaml
         - name: loki-data
           emptyDir: {}
+
 ---
 apiVersion: v1
 kind: Service
@@ -146,6 +150,7 @@ spec:
     - name: http
       port: 3100
       targetPort: 3100
+
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -229,7 +234,7 @@ spec:
       labels:
         app: promtail
     spec:
-      serviceAccountName: promtail        
+      serviceAccountName: promtail
       containers:
         - name: promtail
           image: grafana/promtail:2.9.0
