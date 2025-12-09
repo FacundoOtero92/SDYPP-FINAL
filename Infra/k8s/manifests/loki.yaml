@@ -130,10 +130,10 @@ spec:
           resources:
             requests:
               cpu: "100m"
-              memory: "1Gi"
+              memory: "2Gi"
             limits:
               cpu: "100m"
-              memory: "1Gi"
+              memory: "2Gi"
       volumes:
         - name: loki-config
           configMap:
