@@ -115,11 +115,11 @@ spec:
               mountPath: /var/lib/grafana
           resources:
             requests:
-              cpu: "20m"
-              memory: "64Mi"
+              cpu: "100m"
+              memory: "200Mi"
             limits:
-              cpu: "20m"
-              memory: "64Mi"
+              cpu: "100m"
+              memory: "200Mi"
   volumeClaimTemplates:
     - metadata:
         name: grafana-data
