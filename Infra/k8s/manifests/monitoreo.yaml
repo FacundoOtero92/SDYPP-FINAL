@@ -115,7 +115,7 @@ spec:
               mountPath: /var/lib/grafana
           resources:
             requests:
-              cpu: "100m"
+              cpu: "180m"
               memory: "256Mi"
             limits:
               cpu: "256m"
