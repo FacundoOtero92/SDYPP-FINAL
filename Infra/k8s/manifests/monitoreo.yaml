@@ -40,7 +40,7 @@ spec:
               memory: "300Mi"
             limits:
               cpu: "300m"
-              memory: "300Mi"
+              memory: "300mi"
       volumes:
         - name: config
           configMap:
@@ -115,10 +115,10 @@ spec:
               mountPath: /var/lib/grafana
           resources:
             requests:
-              cpu: "200m"
+              cpu: "100m"
               memory: "256Mi"
             limits:
-              cpu: "256m"
+              cpu: "100m"
               memory: "256Mi"
   volumeClaimTemplates:
     - metadata:
