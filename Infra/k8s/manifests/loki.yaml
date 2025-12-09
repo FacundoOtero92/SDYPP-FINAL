@@ -129,10 +129,10 @@ spec:
               mountPath: /loki
           resources:
             requests:
-              cpu: "150m"
+              cpu: "256m"
               memory: "1Gi"
             limits:
-              cpu: "150m"
+              cpu: "256m"
               memory: "1Gi"
       volumes:
         - name: loki-config
