@@ -116,10 +116,10 @@ spec:
           resources:
             requests:
               cpu: "100m"
-              memory: "200Mi"
+              memory: "256Mi"
             limits:
-              cpu: "100m"
-              memory: "200Mi"
+              cpu: "256m"
+              memory: "256Mi"
   volumeClaimTemplates:
     - metadata:
         name: grafana-data
@@ -193,7 +193,7 @@ spec:
               containerPort: 9091
           resources:
             requests:
-              cpu: "64m"
+              cpu: "20m"
               memory: "64Mi"
             limits:
               cpu: "64m"
