@@ -37,10 +37,10 @@ spec:
           resources:
             requests:
               cpu: "256m"
-              memory: "256Mi"
+              memory: "512Mi"
             limits:
               cpu: "256m"
-              memory: "256Mi"
+              memory: "512Mi"
       volumes:
         - name: config
           configMap:
@@ -116,10 +116,10 @@ spec:
           resources:
             requests:
               cpu: "100m"
-              memory: "256Mi"
+              memory: "512Mi"
             limits:
               cpu: "256m"
-              memory: "256Mi"
+              memory: "512Mi"
   volumeClaimTemplates:
     - metadata:
         name: grafana-data
