@@ -132,7 +132,7 @@ spec:
               cpu: "150m"
               memory: "1Gi"
             limits:
-              cpu: "100m"
+              cpu: "150m"
               memory: "1Gi"
       volumes:
         - name: loki-config
