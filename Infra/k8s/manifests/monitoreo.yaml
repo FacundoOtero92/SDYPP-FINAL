@@ -7,7 +7,7 @@ metadata:
   labels:
     app: prometheus
 spec:
-  serviceName: prometheus     
+  serviceName: prometheus     # usa el Service existente
   replicas: 1
   selector:
     matchLabels:
@@ -17,13 +17,11 @@ spec:
       labels:
         app: prometheus
     spec:
+      securityContext:
+        fsGroup: 2000          # para que Prometheus pueda escribir en /prometheus
       containers:
         - name: prometheus
           image: prom/prometheus:v2.54.0
-          securityContext:
-            fsGroup: 2000
-            runAsUser: 0
-            runAsGroup: 0
           args:
             - "--config.file=/etc/prometheus/prometheus.yml"
             - "--storage.tsdb.path=/prometheus"
@@ -38,10 +36,10 @@ spec:
               mountPath: /prometheus
           resources:
             requests:
-              cpu: "50m"
+              cpu: "64m"
               memory: "100Mi"
             limits:
-              cpu: "50m"
+              cpu: "64m"
               memory: "100Mi"
       volumes:
         - name: config
@@ -54,7 +52,8 @@ spec:
         accessModes: ["ReadWriteOnce"]
         resources:
           requests:
-            storage: 5Gi
+            storage: 10Gi
+
 
 ---
 apiVersion: v1
