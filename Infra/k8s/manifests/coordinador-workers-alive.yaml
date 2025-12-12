@@ -29,7 +29,7 @@ spec:
       serviceAccountName: coordinador-workers-sa  
       containers:
         - name: app
-          image: docker.io/facundootero/coordinador_worker_alive:v24
+          image: docker.io/facundootero/coordinador_worker_alive:v25
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5003
@@ -54,7 +54,7 @@ spec:
             - name: ANTI_FLAP_SEC
               value: "20"
             - name: TAREAS_POR_CPU
-              value: "5"                            # cuántas tareas 'aguanta' una CPU
+              value: "3"                            # cuántas tareas 'aguanta' una CPU
             - name: MAX_REPLICAS_CPU
               value: "10"                           # tope de instancias en el MIG
             - name: MIN_CPU_SI_HAY_BACKLOG
