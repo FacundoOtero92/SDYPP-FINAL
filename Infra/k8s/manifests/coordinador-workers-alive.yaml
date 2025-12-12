@@ -29,7 +29,7 @@ spec:
       serviceAccountName: coordinador-workers-sa  
       containers:
         - name: app
-          image: docker.io/facundootero/coordinador_worker_alive:v25
+          image: docker.io/facundootero/coordinador_worker_alive:v26
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5003
